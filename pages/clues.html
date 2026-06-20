@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>出海雷达 AI - 线索审计</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0B0F19;
+      color: #E2E8F0;
+      overflow: hidden;
+    }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    .gold { color: #F59E0B; }
+    .gold-bg { background: #F59E0B; }
+    .btn-gold { background: linear-gradient(135deg,#F59E0B,#D97706); color: #0B0F19; font-weight: 700; transition: all .2s; }
+    .btn-gold:hover { box-shadow: 0 4px 20px rgba(245,158,11,.4); transform: translateY(-1px); }
+    .btn-gold:active { transform: scale(.98); }
+    .btn-sm { padding: 6px 14px; border-radius: 8px; font-size: 12px; }
+    .btn-outline { border: 1px solid rgba(245,158,11,.3); color: #F59E0B; background: transparent; transition: all .2s; }
+    .btn-outline:hover { background: rgba(245,158,11,.08); border-color: #F59E0B; }
+    .card { background: #111827; border: 1px solid #1F2937; border-radius: 16px; }
+    .card-inner { background: #0D1117; border: 1px solid #1A2233; border-radius: 12px; }
+    .input-field {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      padding: 8px 14px;
+      color: #E2E8F0;
+      font-size: 13px;
+      outline: none;
+      width: 100%;
+      transition: border-color .2s;
+    }
+    .input-field:focus { border-color: #F59E0B; }
+    .input-field::placeholder { color: #4B5563; }
+    select.input-field { cursor: pointer; }
+    /* Scrollbar */
+    .main-scroll { overflow-y: auto; height: calc(100vh - 56px); }
+    .main-scroll::-webkit-scrollbar { width: 4px; }
+    .main-scroll::-webkit-scrollbar-thumb { background: rgba(245,158,11,.15); border-radius: 2px; }
+    /* Table - Bloomberg style */
+    .audit-table { width: 100%; border-collapse: collapse; }
+    .audit-table th {
+      text-align: left; padding: 8px 12px; font-size: 10px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .08em; color: #6B7280;
+      border-bottom: 1px solid #1F2937; position: sticky; top: 0; background: #0D1117; z-index: 5;
+      white-space: nowrap;
+    }
+    .audit-table th:hover { color: #F59E0B; cursor: pointer; }
+    .audit-table td { padding: 8px 12px; font-size: 12px; border-bottom: 1px solid #131927; color: #D1D5DB; }
+    .audit-table tr:hover td { background: rgba(245,158,11,.03); }
+    /* Row expand */
+    .row-detail { background: #0A0E17; }
+    /* Score badges */
+    .badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; display: inline-block; }
+    .badge-high { background: rgba(239,68,68,.12); color: #EF4444; border: 1px solid rgba(239,68,68,.25); }
+    .badge-med { background: rgba(245,158,11,.12); color: #F59E0B; border: 1px solid rgba(245,158,11,.25); }
+    .badge-low { background: rgba(107,114,128,.12); color: #9CA3AF; border: 1px solid rgba(107,114,128,.25); }
+    .badge-green { background: rgba(34,197,94,.12); color: #4ADE80; border: 1px solid rgba(34,197,94,.25); }
+    .badge-blue { background: rgba(99,102,241,.12); color: #818CF8; border: 1px solid rgba(99,102,241,.25); }
+    /* Tab */
+    .tab-btn { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; transition: all .15s; color: #6B7280; cursor: pointer; white-space: nowrap; }
+    .tab-btn.active { color: #F59E0B; background: rgba(245,158,11,.08); }
+    /* Date range quick buttons */
+    .date-btn { padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 500; transition: all .15s; color: #6B7280; cursor: pointer; border: 1px solid transparent; }
+    .date-btn:hover { color: #E2E8F0; }
+    .date-btn.active { color: #F59E0B; background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.2); }
+    /* Search dims */
+    .dim-tab {
+      padding: 5px 12px; border-radius: 6px; font-size: 11px; font-weight: 500;
+      transition: all .15s; color: #6B7280; cursor: pointer; border-bottom: 2px solid transparent;
+    }
+    .dim-tab.active { color: #F59E0B; border-bottom-color: #F59E0B; }
+    /* Modal */
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center; }
+    .modal-box { background:#111827;border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:28px;max-width:600px;width:90%;max-height:85vh;overflow-y:auto;animation:slideDown .3s; }
+    @keyframes slideDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+    /* KPI */
+    .kpi-card { background: #111827; border: 1px solid #1F2937; border-radius: 14px; padding: 16px; position: relative; overflow: hidden; }
+    .kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, transparent, #F59E0B, transparent); }
+    /* Sparkline */
+    .spark-bar { transition: height .4s cubic-bezier(.16,1,.3,1); min-height: 1px; border-radius: 1px 1px 0 0; }
+    /* Toggle */
+    .toggle { position: relative; width: 36px; height: 20px; background: #1F2937; border-radius: 10px; cursor: pointer; transition: background .2s; }
+    .toggle.on { background: #F59E0B; }
+    .toggle-knob { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; background: #E2E8F0; border-radius: 50%; transition: transform .2s; }
+    .toggle.on .toggle-knob { transform: translateX(16px); }
+    /* Highlight search */
+    .highlight { background: rgba(245,158,11,.2); color: #F59E0B; padding: 0 2px; border-radius: 2px; }
+    /* Expanded row animation */
+    @keyframes expandRow { from { opacity:0; max-height:0; } to { opacity:1; max-height:500px; } }
+    .row-expand { animation: expandRow .3s ease-out; overflow: hidden; }
+    /* Print */
+    @media print {
+      body { background: white; color: black; overflow: visible; }
+      .no-print { display: none !important; }
+      .card { background: white; border: 1px solid #ddd; }
+      .audit-table th { background: white; color: #333; border-bottom: 2px solid #333; }
+      .audit-table td { color: #333; border-bottom: 1px solid #eee; }
+      .main-scroll { overflow: visible; height: auto; }
+    }
+    /* Checkbox */
+    .check { width: 14px; height: 14px; border: 1.5px solid #374151; border-radius: 3px; cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; justify-content: center; }
+    .check.checked { background: #F59E0B; border-color: #F59E0B; }
+    .check.checked::after { content: '✓'; color: #0B0F19; font-size: 10px; font-weight: bold; }
+    /* Loading */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin .8s linear infinite; }
+    /* Mobile */
+    @media(max-width:768px) {
+      body { overflow: auto; }
+      .desktop-only { display: none !important; }
+      .audit-table { font-size: 11px; }
+      .audit-table th, .audit-table td { padding: 6px 8px; }
+    }
+  </style>
+</head>
+<body x-data="clueAudit()" x-init="init()">
+
+<!-- TOP BAR -->
+<header class="flex items-center justify-between px-4 h-14 border-b flex-shrink-0" style="border-color:#1F2937; background:#0D1117; position:relative; z-index:50;">
+  <div class="flex items-center gap-3">
+    <a href="dashboard.html" class="flex items-center gap-2">
+      <div class="w-7 h-7 rounded-lg gold-bg flex items-center justify-center">
+        <svg class="w-4 h-4 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path d="M9 12l2 2 4-4"/><path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3"/><path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3"/><path d="M13 5l2-2"/><path d="M13 19l2 2"/>
+        </svg>
+      </div>
+      <span class="text-sm font-bold text-white hidden sm:block">线索审计</span>
+    </a>
+    <span class="text-xs text-gray-600 hidden md:inline">|</span>
+    <span class="text-xs text-gray-500 hidden md:inline" x-text="'共 ' + filteredClues.length + ' 条记录'"></span>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <!-- Export buttons -->
+    <button @click="exportCSV()" class="btn-outline btn-sm flex items-center gap-1.5 no-print">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span class="hidden sm:inline">CSV</span>
+    </button>
+    <button @click="exportPDF()" class="btn-gold btn-sm flex items-center gap-1.5 no-print">
+      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      <span class="hidden sm:inline">PDF</span>
+    </button>
+    <a href="dashboard.html" class="text-gray-500 hover:text-amber-400 transition-colors text-xs px-2 no-print">← 仪表盘</a>
+  </div>
+</header>
+
+<main class="main-scroll p-4 md:p-6">
+
+  <!-- SEARCH & FILTER BAR -->
+  <div class="card p-4 mb-4 no-print">
+    <!-- Bloomberg-style multi-dimension search -->
+    <div class="flex flex-col gap-3">
+      <!-- Search input with dimension tabs -->
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1 flex-shrink-0">
+          <div class="dim-tab" :class="searchDim === 'all' ? 'active' : ''" @click="searchDim = 'all'">全部</div>
+          <div class="dim-tab" :class="searchDim === 'buyer' ? 'active' : ''" @click="searchDim = 'buyer'">买家</div>
+          <div class="dim-tab" :class="searchDim === 'country' ? 'active' : ''" @click="searchDim = 'country'">国家</div>
+          <div class="dim-tab" :class="searchDim === 'source' ? 'active' : ''" @click="searchDim = 'source'">来源</div>
+          <div class="dim-tab" :class="searchDim === 'keyword' ? 'active' : ''" @click="searchDim = 'keyword'">关键词</div>
+          <div class="dim-tab" :class="searchDim === 'script' ? 'active' : ''" @click="searchDim = 'script'">话术</div>
+        </div>
+        <div class="flex-1 relative">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input x-model="searchQuery" type="text" class="input-field pl-10" :placeholder="searchPlaceholder">
+          <button x-show="searchQuery" @click="searchQuery = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-white text-sm">✕</button>
+        </div>
+      </div>
+
+      <!-- Filters row -->
+      <div class="flex items-center gap-3 flex-wrap">
+        <!-- Date range -->
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs text-gray-500">时间:</span>
+          <button class="date-btn" :class="dateRange === 7 ? 'active' : ''" @click="setDateRange(7)">7天</button>
+          <button class="date-btn" :class="dateRange === 30 ? 'active' : ''" @click="setDateRange(30)">30天</button>
+          <button class="date-btn" :class="dateRange === 90 ? 'active' : ''" @click="setDateRange(90)">90天</button>
+          <button class="date-btn" :class="dateRange === 0 ? 'active' : ''" @click="setDateRange(0)">全部</button>
+        </div>
+
+        <div class="w-px h-4 bg-gray-700"></div>
+
+        <!-- Score filter -->
+        <select x-model="scoreFilter" class="input-field w-auto text-xs py-1">
+          <option value="all">全部评分</option>
+          <option value="high">高意向 (80+)</option>
+          <option value="med">中等 (60-79)</option>
+          <option value="low">低意向 (<60)</option>
+        </select>
+
+        <!-- Status filter -->
+        <select x-model="statusFilter" class="input-field w-auto text-xs py-1">
+          <option value="all">全部状态</option>
+          <option value="decrypted">已解密</option>
+          <option value="pending">待解密</option>
+          <option value="followed">已跟进</option>
+        </select>
+
+        <!-- Country filter -->
+        <select x-model="countryFilter" class="input-field w-auto text-xs py-1">
+          <option value="all">全部国家</option>
+          <template x-for="c in uniqueCountries" :key="c">
+            <option :value="c" x-text="c"></option>
+          </template>
+        </select>
+
+        <div class="ml-auto flex items-center gap-2">
+          <span class="text-xs text-gray-500">排序:</span>
+          <select x-model="sortBy" class="input-field w-auto text-xs py-1">
+            <option value="time">时间↓</option>
+            <option value="score">评分↓</option>
+            <option value="decrypts">解密数↓</option>
+            <option value="buyer">买家A-Z</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI SUMMARY -->
+  <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+    <div class="kpi-card">
+      <div class="text-xs text-gray-500 mb-1">总线索</div>
+      <div class="text-lg font-bold text-white" x-text="kpi.total"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="text-xs text-gray-500 mb-1">已解密</div>
+      <div class="text-lg font-bold gold" x-text="kpi.decrypted"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="text-xs text-gray-500 mb-1">已跟进</div>
+      <div class="text-lg font-bold text-green-400" x-text="kpi.followed"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="text-xs text-gray-500 mb-1">转化率</div>
+      <div class="text-lg font-bold text-white" x-text="kpi.conversion + '%'"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="text-xs text-gray-500 mb-1">总消费</div>
+      <div class="text-lg font-bold text-red-400" x-text="'¥' + kpi.totalCost.toFixed(0)"></div>
+    </div>
+  </div>
+
+  <!-- AUDIT TABLE -->
+  <div class="card overflow-hidden">
+    <div class="p-3 border-b flex items-center justify-between" style="border-color:#1F2937;">
+      <div class="flex items-center gap-2">
+        <div class="check" :class="selectAll ? 'checked' : ''" @click="toggleSelectAll()"></div>
+        <span class="text-xs text-gray-400" x-text="selectedIds.length > 0 ? '已选 ' + selectedIds.length + ' 条' : '审计日志'"></span>
+      </div>
+      <div class="flex items-center gap-2 no-print">
+        <span class="text-xs text-gray-600 hidden md:inline" x-text="'显示 ' + paginatedClues.length + ' / ' + filteredClues.length"></span>
+        <button x-show="selectedIds.length > 0" @click="bulkExport()" class="btn-outline btn-sm text-[10px]">批量导出</button>
+        <button x-show="selectedIds.length > 0" @click="selectedIds = []" class="text-gray-500 hover:text-red-400 text-xs">取消</button>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto" style="max-height: calc(100vh - 340px); min-height: 300px;">
+      <table class="audit-table">
+        <thead>
+          <tr>
+            <th style="width:32px"></th>
+            <th style="width:32px"></th>
+            <th @click="sortBy = 'buyer'">买家</th>
+            <th>国家</th>
+            <th>来源</th>
+            <th>关键词</th>
+            <th @click="sortBy = 'score'">评分</th>
+            <th>状态</th>
+            <th>解密时间</th>
+            <th>消费</th>
+            <th>话术</th>
+            <th style="width:60px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="clue in paginatedClues" :key="clue.id">
+            <template x-if="clue">
+              <tr>
+                <td>
+                  <div class="check" :class="selectedIds.includes(clue.id) ? 'checked' : ''" @click="toggleSelect(clue.id)"></div>
+                </td>
+                <td>
+                  <button @click="toggleExpand(clue.id)" class="text-gray-600 hover:text-amber-400 transition-colors">
+                    <svg class="w-3 h-3 transition-transform" :class="expandedId === clue.id ? 'rotate-90' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                  </button>
+                </td>
+                <td>
+                  <div class="flex items-center gap-1.5">
+                    <div class="w-6 h-6 rounded-full bg-gray-700 flex items-center justify-center text-[10px] font-bold text-gray-300" x-text="clue.buyer.charAt(0)"></div>
+                    <span class="text-gray-200 font-medium" x-html="highlight(clue.buyer)"></span>
+                  </div>
+                </td>
+                <td>
+                  <span class="text-xs" x-text="clue.flag + ' ' + clue.country"></span>
+                </td>
+                <td>
+                  <span class="badge badge-blue" x-text="clue.source"></span>
+                </td>
+                <td>
+                  <span class="badge badge-med" x-html="highlight(clue.keyword)"></span>
+                </td>
+                <td>
+                  <span class="badge" :class="clue.score >= 80 ? 'badge-high' : clue.score >= 60 ? 'badge-med' : 'badge-low'" x-text="clue.score"></span>
+                </td>
+                <td>
+                  <span class="badge" :class="clue.status === 'decrypted' ? 'badge-green' : clue.status === 'followed' ? 'badge-high' : 'badge-low'"
+                        x-text="clue.status === 'decrypted' ? '已解密' : clue.status === 'followed' ? '已跟进' : '待解密'"></span>
+                </td>
+                <td class="text-gray-500 text-xs mono" x-text="clue.decryptTime || '—'"></td>
+                <td class="text-gray-400 text-xs" x-text="clue.cost > 0 ? '¥' + clue.cost : '—'"></td>
+                <td>
+                  <span x-show="clue.hasScript" class="text-amber-400 text-xs cursor-pointer hover:underline" @click="viewScript(clue)">查看</span>
+                  <span x-show="!clue.hasScript" class="text-gray-700 text-xs">—</span>
+                </td>
+                <td>
+                  <div class="flex gap-1">
+                    <button @click="toggleExpand(clue.id)" class="text-gray-500 hover:text-amber-400 text-xs" title="详情">i</button>
+                    <button x-show="clue.status !== 'followed'" @click="markFollowed(clue)" class="text-gray-500 hover:text-green-400 text-xs" title="标记跟进">✓</button>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </template>
+
+          <!-- Expanded row detail -->
+          <template x-for="clue in paginatedClues" :key="'detail-' + clue.id">
+            <template x-if="expandedId === clue.id">
+              <tr class="row-detail">
+                <td colspan="12" class="row-expand">
+                  <div class="p-4 grid md:grid-cols-3 gap-4">
+                    <!-- Buyer info -->
+                    <div class="space-y-2">
+                      <div class="text-xs font-semibold text-amber-400 mb-2">买家信息</div>
+                      <div class="text-xs"><span class="text-gray-500">名称:</span> <span class="text-gray-200" x-text="clue.buyer"></span></div>
+                      <div class="text-xs"><span class="text-gray-500">国家:</span> <span class="text-gray-200" x-text="clue.flag + ' ' + clue.country"></span></div>
+                      <div class="text-xs"><span class="text-gray-500">来源:</span> <span class="text-gray-200" x-text="clue.source"></span></div>
+                      <div class="text-xs"><span class="text-gray-500">社区:</span> <span class="text-gray-200" x-text="clue.community"></span></div>
+                      <div class="text-xs"><span class="text-gray-500">原文链接:</span> <span class="text-amber-400 hover:underline cursor-pointer" x-text="clue.url || '未保存'"></span></div>
+                      <div class="text-xs"><span class="text-gray-500">采购量:</span> <span class="text-green-400 font-semibold" x-text="clue.moq || '未提供'"></span></div>
+                    </div>
+                    <!-- Purchase details -->
+                    <div class="space-y-2">
+                      <div class="text-xs font-semibold text-amber-400 mb-2">采购详情</div>
+                      <div class="text-xs text-gray-300 leading-relaxed" x-text="clue.detail"></div>
+                      <div class="text-xs"><span class="text-gray-500">预算:</span> <span class="text-gray-200" x-text="clue.budget || '未明确'"></span></div>
+                      <div class="text-xs"><span class="text-gray-500">认证要求:</span> <span class="text-gray-200" x-text="clue.cert || '无'"></span></div>
+                      <div class="text-xs"><span class="text-gray-500">交货口岸:</span> <span class="text-gray-200" x-text="clue.port || '未指定'"></span></div>
+                    </div>
+                    <!-- AI Analysis -->
+                    <div class="space-y-2">
+                      <div class="text-xs font-semibold text-amber-400 mb-2">AI 分析</div>
+                      <div class="card-inner p-3 space-y-2">
+                        <div>
+                          <div class="text-[10px] text-amber-400 font-semibold mb-0.5">真实意图</div>
+                          <div class="text-xs text-gray-300" x-text="clue.intent || '分析中...'"></div>
+                        </div>
+                        <div>
+                          <div class="text-[10px] text-green-400 font-semibold mb-0.5">谈判筹码</div>
+                          <div class="text-xs text-gray-300" x-text="clue.leverage || '分析中...'"></div>
+                        </div>
+                        <div>
+                          <div class="text-[10px] text-red-400 font-semibold mb-0.5">跟进陷阱</div>
+                          <div class="text-xs text-gray-300" x-text="clue.trap || '分析中...'"></div>
+                        </div>
+                      </div>
+                      <button x-show="clue.hasScript" @click="viewScript(clue)" class="btn-outline btn-sm w-full mt-1">查看完整话术</button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </template>
+          </template>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="p-3 border-t flex items-center justify-between no-print" style="border-color:#1F2937;">
+      <div class="text-xs text-gray-500">
+        <span x-text="'第 ' + ((currentPage-1)*pageSize+1) + ' - ' + Math.min(currentPage*pageSize, filteredClues.length) + ' 条'"></span>
+        <span class="mx-1">|</span>
+        <span x-text="'共 ' + filteredClues.length + ' 条'"></span>
+      </div>
+      <div class="flex items-center gap-1">
+        <button @click="currentPage = Math.max(1, currentPage - 1)" :disabled="currentPage === 1"
+                class="btn-sm text-gray-400 hover:text-amber-400 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-1">‹</button>
+        <template x-for="p in totalPages" :key="p">
+          <button @click="currentPage = p"
+                  class="text-xs w-7 h-7 rounded-md transition-all"
+                  :class="currentPage === p ? 'gold-bg text-gray-900 font-bold' : 'text-gray-500 hover:text-amber-400'">
+            <span x-text="p"></span>
+          </button>
+        </template>
+        <button @click="currentPage = Math.min(totalPages, currentPage + 1)" :disabled="currentPage === totalPages"
+                class="btn-sm text-gray-400 hover:text-amber-400 disabled:opacity-30 disabled:cursor-not-allowed px-3 py-1">›</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom hint -->
+  <div class="text-center text-xs text-gray-600 mt-4 no-print">
+    <span>点击行首箭头展开详情 · 多选后可批量导出 · 支持 Ctrl+P 打印为 PDF</span>
+  </div>
+
+</main>
+
+<!-- SCRIPT VIEWER MODAL -->
+<div class="modal-overlay" x-show="showScriptModal" x-cloak @click.self="showScriptModal = false">
+  <div class="modal-box" x-show="showScriptModal">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h3 class="text-base font-bold text-white">AI 话术记录</h3>
+        <p class="text-xs text-gray-500 mt-0.5" x-show="scriptClue" x-text="scriptClue?.buyer + ' · ' + scriptClue?.keyword"></p>
+      </div>
+      <button @click="showScriptModal = false" class="text-gray-500 hover:text-white text-lg">✕</button>
+    </div>
+    <template x-if="scriptClue">
+      <div class="space-y-3">
+        <!-- Script versions -->
+        <div class="flex items-center gap-2 mb-3">
+          <template x-for="(v, i) in scriptClue.scripts" :key="i">
+            <button @click="scriptVersion = i"
+                    class="tab-btn" :class="scriptVersion === i ? 'active' : ''">
+              <span x-text="'v' + (i+1) + ' · ' + v.tone"></span>
+            </button>
+          </template>
+        </div>
+        <!-- Script content -->
+        <div class="card-inner p-4">
+          <div class="flex items-center gap-2 mb-3 text-xs">
+            <span class="badge badge-med" x-text="scriptClue.scripts[scriptVersion]?.tone"></span>
+            <span class="text-gray-500" x-text="'生成于 ' + scriptClue.scripts[scriptVersion]?.time"></span>
+          </div>
+          <div class="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap" x-text="scriptClue.scripts[scriptVersion]?.content"></div>
+        </div>
+        <!-- Actions -->
+        <div class="flex gap-2">
+          <button @click="copyScript()" class="btn-gold btn-sm flex-1 py-2">复制话术</button>
+          <button @click="exportSingle(scriptClue)" class="btn-outline btn-sm flex-1 py-2">导出此线索</button>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div x-show="toast.show" x-cloak x-transition
+     class="fixed bottom-6 right-6 z-[300] px-5 py-3 rounded-xl text-sm font-medium"
+     :class="toast.type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : toast.type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'"
+     style="backdrop-filter:blur(12px);">
+  <span x-text="toast.msg"></span>
+</div>
+
+<script>
+function clueAudit() {
+  return {
+    // Search
+    searchQuery: '',
+    searchDim: 'all',
+    // Filters
+    dateRange: 30,
+    scoreFilter: 'all',
+    statusFilter: 'all',
+    countryFilter: 'all',
+    sortBy: 'time',
+    // Table
+    clues: [],
+    expandedId: null,
+    selectedIds: [],
+    selectAll: false,
+    // Pagination
+    currentPage: 1,
+    pageSize: 15,
+    // Modal
+    showScriptModal: false,
+    scriptClue: null,
+    scriptVersion: 0,
+    // KPI
+    kpi: { total: 0, decrypted: 0, followed: 0, conversion: 0, totalCost: 0 },
+    // Toast
+    toast: { show: false, msg: '', type: 'info' },
+
+    init() {
+      this.generateClues();
+      this.calculateKPI();
+      // Keyboard shortcut for search
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+          e.preventDefault();
+          document.querySelector('input[placeholder]')?.focus();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+          // Let browser handle native print
+        }
+      });
+    },
+
+    generateClues() {
+      const data = [
+        { buyer: 'John Smith', country: '美国', flag: '🇺🇸', source: 'Reddit', community: 'r/lawncare', keyword: '割草机', score: 92, status: 'decrypted', detail: 'Looking for a reliable manufacturer of gas-powered lawn mowers. Need CE/EPA certification. Order quantity 500-1000 units initially.', moq: '500台', budget: '$80-$120/台', cert: 'EPA', port: '洛杉矶港', intent: '有明确采购计划，预算充足，正在比价3家供应商', leverage: '对方提到已有中国供应商报价$85，可以此为锚点', trap: '买家要求免费样品，建议收取样品费可在大货中抵扣' },
+        { buyer: 'Hans Mueller', country: '德国', flag: '🇩🇪', source: 'LinkedIn', community: 'B2B Garden Tools', keyword: '割草机', score: 88, status: 'followed', detail: 'Wir suchen einen OEM-Hersteller für Rasenmäher mit CE-Zertifizierung. Erste Bestellung 300 Stück, Folgeberträge größer.', moq: '300台', budget: '€90-130/台', cert: 'CE', port: '汉堡港', intent: '德国经销商，有稳定渠道，需OEM贴牌', leverage: '德方重视质量和认证，可强调15年制造经验', trap: '认证周期长，需提前准备CE技术文件' },
+        { buyer: 'Pierre Dubois', country: '法国', flag: '🇫🇷', source: 'Facebook', community: 'Import Export France', keyword: 'LED灯条', score: 76, status: 'decrypted', detail: 'Recherche fabricant LED strip lights IP67. Besoin 5000m pour projet hôtelier.', moq: '5000米', budget: '€3-5/米', cert: 'CE/RoHS', port: '马赛港', intent: '工程项目采购，一次性需求', leverage: '项目有明确交付时间，可加急费溢价', trap: '付款方式可能要求LC，需评估风险' },
+        { buyer: 'Carlos Garcia', country: '墨西哥', flag: '🇲🇽', source: 'WhatsApp', community: 'Ferret Mexico Group', keyword: '割草机', score: 84, status: 'pending', detail: 'Buscamos fabricante de cortadoras de césped eléctricas. MOQ 200 piezas. Necesitamos factura y garantía.', moq: '200台', budget: '$60-90/台', cert: '无要求', port: '曼萨尼约港', intent: '小型分销商，试单后可能返单', leverage: '墨西哥关税优势，可强调USMCA协定', trap: '订单量小，需评估利润是否覆盖物流' },
+        { buyer: 'Ahmed Ali', country: '阿联酋', flag: '🇦🇪', source: '行业论坛', community: 'TradeKey', keyword: '太阳能板', score: 95, status: 'followed', detail: 'Looking for Tier-1 solar panel manufacturer. 100MW project. Need IEC61215/61730 certification.', moq: '10MW', budget: '$0.25-0.35/W', cert: 'IEC61215/61730', port: '迪拜杰贝阿里港', intent: '大型项目采购，预算充足，决策快', leverage: '中东客户重视面谈，建议安排视频会议', trap: '需注意LC付款风险，建议30%预付' },
+        { buyer: 'Yuki Tanaka', country: '日本', flag: '🇯🇵', source: 'Alibaba', community: 'Alibaba RFQ', keyword: '电动工具', score: 71, status: 'decrypted', detail: '電動工具のOEMメーカーを探しています。PSE認証必須。初回1000台。', moq: '1000台', budget: '¥3000-5000/台', cert: 'PSE', port: '东京港', intent: '日本市场准入要求高，需PSE认证', leverage: '日方重视品质管控，可提供JIS标准报告', trap: 'PSE认证周期3-6个月，需提前规划' },
+        { buyer: 'Olga Petrova', country: '俄罗斯', flag: '🇷🇺', source: 'Facebook', community: 'B2B Russia Import', keyword: '园林机械', score: 65, status: 'pending', detail: 'Ищем производителя садовой техники. Интересуют газонокосилки и триммеры.', moq: '未明确', budget: '未明确', cert: 'EAC', port: '圣彼得堡港', intent: '初步询价，采购计划不明确', leverage: '俄罗斯市场对价格敏感，可主打性价比', trap: '汇率波动大，建议锁定美元结算' },
+        { buyer: 'David Wilson', country: '澳大利亚', flag: '🇦🇺', source: 'Reddit', community: 'r/AustralianBusiness', keyword: '割草机', score: 89, status: 'decrypted', detail: 'Looking for push mower supplier for Australian market. Need to meet AS/NZS standards. 300 units to start.', moq: '300台', budget: 'AUD 120-180', cert: 'AS/NZS', port: '悉尼港', intent: '澳洲分销商，有本地渠道', leverage: '澳洲标准严格，认证壁垒是优势', trap: '物流周期长，需备库存支持' },
+        { buyer: 'Maria Santos', country: '巴西', flag: '🇧🇷', source: 'LinkedIn', community: 'Brazil Trade', keyword: '工业水泵', score: 78, status: 'decrypted', detail: 'Procuramos fabricante de bombas de água industriais. Projeto de irrigação 500 unidades.', moq: '500台', budget: 'R$ 200-350', cert: 'INMETRO', port: '桑托斯港', intent: '政府灌溉项目，量大但付款条件严格', leverage: '政府项目有背书，可提供分期付款', trap: '巴西进口关税高，需评估CIF价格竞争力' },
+        { buyer: 'Kim Min-su', country: '韩国', flag: '🇰🇷', source: '行业论坛', community: 'TradeKorea', keyword: 'LED灯条', score: 82, status: 'followed', detail: 'LED 스트립 조명 제조업체를 찾고 있습니다. KC 인증 필요. 10000m.', moq: '10000米', budget: '₩3000-5000/米', cert: 'KC', port: '釜山港', intent: '韩国LED市场稳定增长，有返单潜力', leverage: '韩方重视交期，可承诺15天交付', trap: 'KC认证费用高，需分摊到订单量' },
+        { buyer: 'Fatima Zahra', country: '摩洛哥', flag: '🇲🇦', source: 'WhatsApp', community: 'Morocco Import Group', keyword: '太阳能板', score: 68, status: 'pending', detail: 'Recherche panneaux solaires pour projet rural. 5MW. Budget limité.', moq: '5MW', budget: '$0.22-0.28/W', cert: 'IEC', port: '卡萨布兰卡港', intent: '政府农村电气化项目，预算受限', leverage: '可提供性价比方案，B级面板', trap: '付款可能依赖世界银行贷款，周期长' },
+        { buyer: 'Robert Brown', country: '英国', flag: '🇬🇧', source: 'Reddit', community: 'r/UKBusiness', keyword: '电动工具', score: 86, status: 'decrypted', detail: 'Searching for cordless power tool manufacturer. UKCA marking required. Initial order 500 units.', moq: '500台', budget: '£40-65/台', cert: 'UKCA', port: '费利克斯托港', intent: '英国脱欧后寻找替代中国供应商', leverage: 'UKCA认证壁垒可筛选竞争对手', trap: '脱欧后清关流程变化，需了解新规' },
+        { buyer: 'Lars Andersen', country: '丹麦', flag: '🇩🇰', source: 'LinkedIn', community: 'Nordic Trade', keyword: '园林机械', score: 73, status: 'pending', detail: 'Looking for robotic lawn mower supplier. Scandinavian market. High quality requirements.', moq: '200台', budget: '€200-350/台', cert: 'CE', port: '哥本哈根港', intent: '北欧高端市场，利润空间大但要求严', leverage: '机器人割草机是趋势，可强调技术优势', trap: '北欧对噪音和环保要求极高' },
+        { buyer: 'Raj Patel', country: '印度', flag: '🇮🇳', source: 'Facebook', community: 'India Import Export', keyword: 'LED灯条', score: 59, status: 'pending', detail: 'LED strip light manufacturer needed. Price sensitive market. 50000m.', moq: '50000米', budget: '$1-2/米', cert: 'BIS', port: '孟买港', intent: '印度市场价格敏感，量大但利润薄', leverage: '量大有规模效应', trap: 'BIS认证周期长且费用高，印度海关复杂' },
+        { buyer: 'Sven Eriksson', country: '瑞典', flag: '🇸🇪', source: 'Alibaba', community: 'Alibaba RFQ', keyword: '工业水泵', score: 80, status: 'decrypted', detail: 'Need industrial water pump supplier. CE marked. 200 units for construction project.', moq: '200台', budget: '€150-280/台', cert: 'CE', port: '哥德堡港', intent: '工程项目采购，需求明确', leverage: '瑞典重视能效，可提供EU MEPS报告', trap: '需考虑冬季施工的防冻要求' },
+      ];
+
+      // Generate decrypt times and costs
+      const now = Date.now();
+      this.clues = data.map((c, i) => {
+        const decrypted = c.status !== 'pending';
+        const hoursAgo = Math.floor(Math.random() * 24 * (this.dateRange || 30));
+        return {
+          ...c,
+          id: i + 1,
+          decryptTime: decrypted ? new Date(now - hoursAgo * 3600000).toLocaleString('zh-CN', {hour12:false, month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : null,
+          cost: decrypted ? (3.00).toFixed(2) : 0,
+          hasScript: c.status === 'followed' || (c.status === 'decrypted' && Math.random() > 0.4),
+          url: c.source === 'Reddit' ? 'reddit.com/r/' + c.community : c.source === 'LinkedIn' ? 'linkedin.com/posts/' + Math.random().toString(36).substr(2,8) : c.source.toLowerCase() + '.com/post/' + Math.random().toString(36).substr(2,6),
+          scripts: [],
+        };
+      });
+
+      // Add scripts for clues that have them
+      this.clues.forEach(c => {
+        if (c.hasScript) {
+          const tones = ['专业商务', '热情亲切', '沉稳权威', '简洁高效'];
+          c.scripts = tones.map((tone, i) => ({
+            tone,
+            time: new Date(now - (i * 3600000 + Math.random() * 3600000)).toLocaleString('zh-CN', {hour12:false, month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
+            content: this.generateScript(c, tone),
+          }));
+        }
+      });
+    },
+
+    generateScript(clue, tone) {
+      const templates = {
+        '专业商务': `Dear ${clue.buyer},\n\nThank you for your inquiry regarding ${clue.keyword}. We are a professional manufacturer with 15 years of experience in producing high-quality ${clue.keyword} for the global market.\n\nKey advantages:\n- Factory-direct pricing with MOQ ${clue.moq || 'negotiable'}\n- Certification: ${clue.cert || 'available upon request'}\n- Delivery port: ${clue.port || 'flexible'}\n\nWe would be happy to provide a detailed quotation. Please share your specific requirements.\n\nBest regards,\nSales Team`,
+        '热情亲切': `Hi ${clue.buyer}! 👋\n\nSo excited to see your interest in ${clue.keyword}! We've been helping businesses in ${clue.country} source premium products for years.\n\nHere's what makes us different:\n✅ Super competitive factory prices\n✅ ${clue.cert || 'Full certification'} ready to go\n✅ Fast shipping to ${clue.port || 'your port'}\n\nLet's chat about your needs! Drop me a message and I'll get you a quote within 24 hours. 🚀\n\nCheers!`,
+        '沉稳权威': `${clue.buyer} 先生/女士：\n\n关于贵方在${clue.source}发布的${clue.keyword}采购需求，我司已认真研读。\n\n我司具备以下条件匹配贵方需求：\n一、产能充足，月产能${clue.moq ? '可满足' + clue.moq + '起订量' : '可灵活调整'}；\n二、${clue.cert || '相关'}认证齐全，已服务多家${clue.country}客户；\n三、${clue.port ? '熟悉' + clue.port + '清关流程' : '物流渠道成熟'}。\n\n如有进一步沟通意向，请回复本邮件，我司将在24小时内提供正式报价单。\n\n此致\n敬礼`,
+        '简洁高效': `${clue.buyer},\n\n${clue.keyword} inquiry received. Quick summary:\n\n• MOQ: ${clue.moq || 'Negotiable'}\n• Cert: ${clue.cert || 'Available'}\n• Port: ${clue.port || 'Flexible'}\n• Lead time: 25-30 days\n\nQuotation ready in 24h. WhatsApp: +86-xxx-xxxx-xxxx\n\nLet's move fast.`,
+      };
+      return templates[tone] || templates['专业商务'];
+    },
+
+    calculateKPI() {
+      this.kpi.total = this.clues.length;
+      this.kpi.decrypted = this.clues.filter(c => c.status !== 'pending').length;
+      this.kpi.followed = this.clues.filter(c => c.status === 'followed').length;
+      this.kpi.conversion = this.kpi.total > 0 ? Math.round(this.kpi.followed / this.kpi.total * 100) : 0;
+      this.kpi.totalCost = this.clues.reduce((sum, c) => sum + parseFloat(c.cost || 0), 0);
+    },
+
+    get uniqueCountries() {
+      return [...new Set(this.clues.map(c => c.country))].sort();
+    },
+
+    get searchPlaceholder() {
+      const map = { all: '搜索买家、国家、来源、关键词、话术内容... (Ctrl+K)', buyer: '搜索买家名称...', country: '搜索国家...', source: '搜索来源平台...', keyword: '搜索关键词...', script: '搜索话术内容...' };
+      return map[this.searchDim] || map.all;
+    },
+
+    get filteredClues() {
+      let list = [...this.clues];
+
+      // Search filter
+      if (this.searchQuery) {
+        const q = this.searchQuery.toLowerCase();
+        list = list.filter(c => {
+          switch (this.searchDim) {
+            case 'buyer': return c.buyer.toLowerCase().includes(q);
+            case 'country': return c.country.toLowerCase().includes(q);
+            case 'source': return c.source.toLowerCase().includes(q);
+            case 'keyword': return c.keyword.toLowerCase().includes(q);
+            case 'script': return c.scripts.some(s => s.content.toLowerCase().includes(q));
+            default: return c.buyer.toLowerCase().includes(q) || c.country.toLowerCase().includes(q) || c.source.toLowerCase().includes(q) || c.keyword.toLowerCase().includes(q) || c.scripts.some(s => s.content.toLowerCase().includes(q));
+          }
+        });
+      }
+
+      // Date range
+      if (this.dateRange > 0) {
+        const cutoff = Date.now() - this.dateRange * 86400000;
+        list = list.filter(c => {
+          if (!c.decryptTime) return true; // pending always show
+          return new Date(c.decryptTime).getTime() >= cutoff;
+        });
+      }
+
+      // Score filter
+      if (this.scoreFilter !== 'all') {
+        list = list.filter(c => {
+          if (this.scoreFilter === 'high') return c.score >= 80;
+          if (this.scoreFilter === 'med') return c.score >= 60 && c.score < 80;
+          return c.score < 60;
+        });
+      }
+
+      // Status filter
+      if (this.statusFilter !== 'all') {
+        list = list.filter(c => c.status === this.statusFilter);
+      }
+
+      // Country filter
+      if (this.countryFilter !== 'all') {
+        list = list.filter(c => c.country === this.countryFilter);
+      }
+
+      // Sort
+      list.sort((a, b) => {
+        switch (this.sortBy) {
+          case 'score': return b.score - a.score;
+          case 'decrypts': return (b.decryptCount || 0) - (a.decryptCount || 0);
+          case 'buyer': return a.buyer.localeCompare(b.buyer);
+          default: return new Date(b.decryptTime || 0) - new Date(a.decryptTime || 0);
+        }
+      });
+
+      return list;
+    },
+
+    get totalPages() {
+      return Math.max(1, Math.ceil(this.filteredClues.length / this.pageSize));
+    },
+
+    get paginatedClues() {
+      const start = (this.currentPage - 1) * this.pageSize;
+      return this.filteredClues.slice(start, start + this.pageSize);
+    },
+
+    setDateRange(days) {
+      this.dateRange = days;
+      this.currentPage = 1;
+    },
+
+    toggleExpand(id) {
+      this.expandedId = this.expandedId === id ? null : id;
+    },
+
+    toggleSelect(id) {
+      const idx = this.selectedIds.indexOf(id);
+      if (idx > -1) this.selectedIds.splice(idx, 1);
+      else this.selectedIds.push(id);
+      this.selectAll = this.selectedIds.length === this.filteredClues.length;
+    },
+
+    toggleSelectAll() {
+      if (this.selectedIds.length === this.filteredClues.length) {
+        this.selectedIds = [];
+        this.selectAll = false;
+      } else {
+        this.selectedIds = this.filteredClues.map(c => c.id);
+        this.selectAll = true;
+      }
+    },
+
+    markFollowed(clue) {
+      clue.status = 'followed';
+      this.calculateKPI();
+      this.showToast('已标记为已跟进', 'success');
+    },
+
+    viewScript(clue) {
+      this.scriptClue = clue;
+      this.scriptVersion = 0;
+      this.showScriptModal = true;
+    },
+
+    copyScript() {
+      if (this.scriptClue?.scripts[this.scriptVersion]) {
+        navigator.clipboard.writeText(this.scriptClue.scripts[this.scriptVersion].content);
+        this.showToast('话术已复制到剪贴板', 'success');
+      }
+    },
+
+    highlight(text) {
+      if (!this.searchQuery || !text) return text;
+      const q = this.searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return text.replace(new RegExp(q, 'gi'), (m) => `<span class="highlight">${m}</span>`);
+    },
+
+    exportCSV() {
+      const headers = ['ID', '买家', '国家', '来源', '社区', '关键词', '评分', '状态', '解密时间', '消费', '采购量', '预算', '认证', '口岸', '采购详情'];
+      const rows = this.filteredClues.map(c => [
+        c.id, c.buyer, c.country, c.source, c.community, c.keyword, c.score,
+        c.status, c.decryptTime || '', c.cost || '', c.moq || '', c.budget || '',
+        c.cert || '', c.port || '', (c.detail || '').replace(/[\n,]/g, ' '),
+      ]);
+
+      let csv = '\uFEFF' + headers.join(',') + '\n';
+      rows.forEach(r => csv += r.map(v => `"${v}"`).join(',') + '\n');
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `线索审计_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.showToast('CSV已导出 (' + rows.length + ' 条)', 'success');
+    },
+
+    exportPDF() {
+      this.showToast('正在生成PDF...', 'info');
+      setTimeout(() => {
+        window.print();
+        this.showToast('PDF打印窗口已打开', 'success');
+      }, 500);
+    },
+
+    exportSingle(clue) {
+      const headers = ['ID', '买家', '国家', '来源', '关键词', '评分', '状态', '采购量', '预算', '认证', '口岸', '详情'];
+      const row = [clue.id, clue.buyer, clue.country, clue.source, clue.keyword, clue.score, clue.status, clue.moq || '', clue.budget || '', clue.cert || '', clue.port || '', (clue.detail || '').replace(/[\n,]/g, ' ')];
+      let csv = '\uFEFF' + headers.join(',') + '\n' + row.map(v => `"${v}"`).join(',');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `线索_${clue.buyer}_${clue.id}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.showToast('线索已导出', 'success');
+    },
+
+    bulkExport() {
+      const selected = this.clues.filter(c => this.selectedIds.includes(c.id));
+      const headers = ['ID', '买家', '国家', '来源', '关键词', '评分', '状态', '采购量', '预算', '认证', '口岸', '详情'];
+      let csv = '\uFEFF' + headers.join(',') + '\n';
+      selected.forEach(c => {
+        const row = [c.id, c.buyer, c.country, c.source, c.keyword, c.score, c.status, c.moq || '', c.budget || '', c.cert || '', c.port || '', (c.detail || '').replace(/[\n,]/g, ' ')];
+        csv += row.map(v => `"${v}"`).join(',') + '\n';
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `批量导出_${selected.length}条_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this.showToast('已导出 ' + selected.length + ' 条线索', 'success');
+    },
+
+    showToast(msg, type = 'info') {
+      this.toast = { show: true, msg, type };
+      setTimeout(() => this.toast.show = false, 3000);
+    },
+  };
+}
+</script>
+
+<style>[x-cloak]{display:none!important}</style>
+</body>
+</html>

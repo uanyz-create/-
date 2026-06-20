@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>出海雷达 AI - 管理控制台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0B0F19;
+      color: #E2E8F0;
+      overflow: hidden;
+    }
+    .gold { color: #F59E0B; }
+    .gold-bg { background: #F59E0B; }
+    .btn-gold { background: linear-gradient(135deg,#F59E0B,#D97706); color: #0B0F19; font-weight: 700; transition: all .2s; }
+    .btn-gold:hover { box-shadow: 0 4px 20px rgba(245,158,11,.4); transform: translateY(-1px); }
+    .btn-gold:active { transform: scale(.98); }
+    .btn-sm { padding: 6px 14px; border-radius: 8px; font-size: 12px; }
+    .btn-danger { background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.3); color: #EF4444; transition: all .2s; }
+    .btn-danger:hover { background: rgba(239,68,68,.2); }
+    .btn-success { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.3); color: #4ADE80; transition: all .2s; }
+    .btn-success:hover { background: rgba(34,197,94,.2); }
+    .card { background: #111827; border: 1px solid #1F2937; border-radius: 16px; }
+    .card-inner { background: #0D1117; border: 1px solid #1A2233; border-radius: 12px; }
+    .input-field {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      padding: 8px 14px;
+      color: #E2E8F0;
+      font-size: 13px;
+      outline: none;
+      width: 100%;
+      transition: border-color .2s;
+    }
+    .input-field:focus { border-color: #F59E0B; }
+    .input-field::placeholder { color: #4B5563; }
+    select.input-field { cursor: pointer; }
+    /* Sidebar */
+    .sidebar { width: 220px; min-width: 220px; background: #0D1117; border-right: 1px solid #1F2937; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; font-size: 13px; font-weight: 500;
+      color: #6B7280; cursor: pointer; transition: all .15s;
+      border-left: 3px solid transparent;
+    }
+    .nav-item:hover { color: #E2E8F0; background: rgba(255,255,255,.02); }
+    .nav-item.active { color: #F59E0B; border-left-color: #F59E0B; background: rgba(245,158,11,.05); }
+    .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+    /* Scrollbar */
+    .main-scroll { overflow-y: auto; height: calc(100vh - 56px); }
+    .main-scroll::-webkit-scrollbar { width: 4px; }
+    .main-scroll::-webkit-scrollbar-thumb { background: rgba(245,158,11,.15); border-radius: 2px; }
+    /* Table */
+    .admin-table { width: 100%; border-collapse: collapse; }
+    .admin-table th {
+      text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: .05em; color: #6B7280;
+      border-bottom: 1px solid #1F2937; position: sticky; top: 0; background: #0D1117; z-index: 5;
+    }
+    .admin-table td { padding: 12px; font-size: 13px; border-bottom: 1px solid #161E2E; color: #D1D5DB; }
+    .admin-table tr:hover td { background: rgba(255,255,255,.015); }
+    /* Status badges */
+    .badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; display: inline-block; }
+    .badge-active { background: rgba(34,197,94,.12); color: #4ADE80; border: 1px solid rgba(34,197,94,.25); }
+    .badge-banned { background: rgba(239,68,68,.12); color: #EF4444; border: 1px solid rgba(239,68,68,.25); }
+    .badge-trial { background: rgba(245,158,11,.12); color: #F59E0B; border: 1px solid rgba(245,158,11,.25); }
+    .badge-vip { background: rgba(99,102,241,.12); color: #818CF8; border: 1px solid rgba(99,102,241,.25); }
+    /* Toggle switch */
+    .toggle { position: relative; width: 40px; height: 22px; background: #1F2937; border-radius: 11px; cursor: pointer; transition: background .2s; }
+    .toggle.on { background: #F59E0B; }
+    .toggle-knob { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: #E2E8F0; border-radius: 50%; transition: transform .2s; }
+    .toggle.on .toggle-knob { transform: translateX(18px); }
+    /* KPI cards */
+    .kpi-card {
+      background: #111827; border: 1px solid #1F2937; border-radius: 14px;
+      padding: 20px; position: relative; overflow: hidden;
+    }
+    .kpi-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, #F59E0B, transparent);
+    }
+    /* Chart bar */
+    .chart-bar {
+      transition: height .4s cubic-bezier(.16,1,.3,1);
+      min-height: 2px; border-radius: 3px 3px 0 0;
+    }
+    /* Modal */
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center; }
+    .modal-box { background:#111827;border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:28px;max-width:480px;width:90%;max-height:85vh;overflow-y:auto;animation:slideDown .3s; }
+    @keyframes slideDown { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+    /* Alert pulse */
+    @keyframes alertPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.4); }
+      50% { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+    }
+    .alert-pulse { animation: alertPulse 2s infinite; }
+    /* Tab */
+    .tab-btn { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 500; transition: all .15s; color: #6B7280; cursor: pointer; }
+    .tab-btn.active { color: #F59E0B; background: rgba(245,158,11,.08); }
+    /* Loading */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { animation: spin .8s linear infinite; }
+    /* Login gate */
+    .login-gate {
+      position: fixed; inset: 0; background: #0B0F19;
+      display: flex; align-items: center; justify-content: center; z-index: 300;
+    }
+    /* Risk meter */
+    .risk-meter {
+      width: 100%; height: 6px; background: #1F2937; border-radius: 3px; overflow: hidden;
+    }
+    .risk-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+  </style>
+</head>
+<body x-data="adminPanel()" x-init="init()">
+
+<!-- LOGIN GATE -->
+<div class="login-gate" x-show="!authed">
+  <div class="text-center max-w-sm px-8">
+    <div class="w-16 h-16 mx-auto mb-6 rounded-2xl gold-bg flex items-center justify-center">
+      <svg class="w-8 h-8 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L2 7v10a2 2 0 002 2h16a2 2 0 002-2V7L12 2z"/>
+        <path d="M9 12l2 2 4-4"/>
+      </svg>
+    </div>
+    <h1 class="text-xl font-bold text-white mb-2">管理控制台</h1>
+    <p class="text-sm text-gray-500 mb-6">仅限管理员账户访问</p>
+    <div class="space-y-3">
+      <input x-model="loginEmail" type="email" class="input-field text-center" placeholder="管理员邮箱">
+      <input x-model="loginPass" type="password" class="input-field text-center" placeholder="密码">
+      <button @click="tryLogin()" class="btn-gold w-full py-2.5 rounded-xl text-sm">验证身份</button>
+      <p x-show="loginError" class="text-red-400 text-xs" x-text="loginError"></p>
+    </div>
+    <a href="../index.html" class="text-gray-600 text-xs mt-6 inline-block hover:text-gray-400">← 返回首页</a>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT (hidden until authed) -->
+<template x-if="authed">
+
+<div class="flex flex-col h-screen">
+  <!-- TOP BAR -->
+  <header class="flex items-center justify-between px-4 h-14 border-b flex-shrink-0" style="border-color:#1F2937; background:#0D1117; position:relative; z-index:50;">
+    <div class="flex items-center gap-3">
+      <a href="../index.html" class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-lg gold-bg flex items-center justify-center">
+          <svg class="w-4 h-4 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7v10a2 2 0 002 2h16a2 2 0 002-2V7L12 2z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <span class="text-sm font-bold text-white">管理控制台</span>
+      </a>
+      <span class="badge badge-vip hidden sm:inline-block">ADMIN</span>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Live clock -->
+      <div class="hidden md:flex items-center gap-2 text-xs text-gray-500">
+        <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+        <span x-text="clockText"></span>
+      </div>
+      <!-- Risk alerts badge -->
+      <button @click="currentView = 'alerts'" class="relative px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5"
+              :class="currentView === 'alerts' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'text-gray-500 hover:text-gray-300'">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>风控告警</span>
+        <span class="badge badge-banned" x-show="alertCount > 0" x-text="alertCount"></span>
+      </button>
+      <div class="w-8 h-8 rounded-full gold-bg flex items-center justify-center text-xs font-black text-gray-900">A</div>
+    </div>
+  </header>
+
+  <div class="flex flex-1 overflow-hidden">
+    <!-- SIDEBAR -->
+    <aside class="sidebar hidden md:flex flex-col py-3">
+      <div class="nav-item" :class="currentView === 'overview' ? 'active' : ''" @click="currentView = 'overview'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span>概览仪表盘</span>
+      </div>
+      <div class="nav-item" :class="currentView === 'users' ? 'active' : ''" @click="currentView = 'users'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        <span>用户管理</span>
+      </div>
+      <div class="nav-item" :class="currentView === 'revenue' ? 'active' : ''" @click="currentView = 'revenue'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        <span>营收统计</span>
+      </div>
+      <div class="nav-item" :class="currentView === 'risk' ? 'active' : ''" @click="currentView = 'risk'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>风控配置</span>
+      </div>
+      <div class="nav-item" :class="currentView === 'alerts' ? 'active' : ''" @click="currentView = 'alerts'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>告警日志</span>
+        <span class="ml-auto badge badge-banned" x-show="alertCount > 0" x-text="alertCount"></span>
+      </div>
+      <div class="nav-item" :class="currentView === 'audit' ? 'active' : ''" @click="currentView = 'audit'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>审计日志</span>
+      </div>
+      <div class="nav-item" :class="currentView === 'clues' ? 'active' : ''" @click="currentView = 'clues'">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>线索管理</span>
+      </div>
+
+      <div class="mt-auto px-4 py-3 border-t" style="border-color:#1F2937;">
+        <a href="dashboard.html" class="text-xs text-gray-600 hover:text-amber-400 transition-colors flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          返回仪表盘
+        </a>
+      </div>
+    </aside>
+
+    <!-- Mobile nav -->
+    <div class="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around py-2 border-t z-50" style="background:#0D1117;border-color:#1F2937;">
+      <button @click="currentView='overview'" class="text-xs flex flex-col items-center gap-0.5" :class="currentView==='overview'?'text-amber-400':'text-gray-500'"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>概览</button>
+      <button @click="currentView='users'" class="text-xs flex flex-col items-center gap-0.5" :class="currentView==='users'?'text-amber-400':'text-gray-500'"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>用户</button>
+      <button @click="currentView='revenue'" class="text-xs flex flex-col items-center gap-0.5" :class="currentView==='revenue'?'text-amber-400':'text-gray-500'"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>营收</button>
+      <button @click="currentView='alerts'" class="text-xs flex flex-col items-center gap-0.5" :class="currentView==='alerts'?'text-amber-400':'text-gray-500'"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>告警</button>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-scroll flex-1 p-4 md:p-6 pb-20 md:pb-6">
+
+      <!-- ============ OVERVIEW ============ -->
+      <div x-show="currentView === 'overview'" class="space-y-5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold text-white">概览仪表盘</h2>
+          <span class="text-xs text-gray-500" x-text="'数据更新于 ' + lastUpdate"></span>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="kpi-card">
+            <div class="text-xs text-gray-500 mb-1">总用户数</div>
+            <div class="text-2xl font-bold text-white" x-text="stats.totalUsers.toLocaleString()"></div>
+            <div class="text-xs text-green-400 mt-1" x-text="'+' + stats.newUsersToday + ' 今日'"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="text-xs text-gray-500 mb-1">月营收 (¥)</div>
+            <div class="text-2xl font-bold gold" x-text="'¥' + stats.monthRevenue.toLocaleString()"></div>
+            <div class="text-xs text-green-400 mt-1" x-text="'+' + stats.revenueGrowth + '% 环比'"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="text-xs text-gray-500 mb-1">总解密次数</div>
+            <div class="text-2xl font-bold text-white" x-text="stats.totalDecrypts.toLocaleString()"></div>
+            <div class="text-xs text-gray-500 mt-1" x-text="'今日 ' + stats.decryptsToday"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="text-xs text-gray-500 mb-1">活跃订阅</div>
+            <div class="text-2xl font-bold text-white" x-text="stats.activeSubs"></div>
+            <div class="text-xs text-gray-500 mt-1" x-text="stats.activeSubs + ' 付费用户'"></div>
+          </div>
+        </div>
+
+        <!-- Revenue Chart + Risk Panel -->
+        <div class="grid md:grid-cols-3 gap-4">
+          <div class="card p-5 md:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-sm font-semibold text-white">近14天营收趋势</h3>
+              <div class="flex gap-1">
+                <button class="tab-btn active">营收</button>
+                <button class="tab-btn">解密</button>
+                <button class="tab-btn">注册</button>
+              </div>
+            </div>
+            <div class="flex items-end gap-1.5 h-40" id="revChart">
+              <template x-for="(d, i) in revenueChart" :key="i">
+                <div class="flex-1 flex flex-col items-center gap-1 group cursor-pointer">
+                  <div class="text-[10px] text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity" x-text="'¥' + d.v"></div>
+                  <div class="chart-bar w-full" :style="'height:' + (d.v / maxRev * 100) + '%; background: linear-gradient(180deg, #F59E0B, rgba(245,158,11,.2));'"></div>
+                  <div class="text-[9px] text-gray-600" x-text="d.d"></div>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <div class="card p-5">
+            <h3 class="text-sm font-semibold text-white mb-4">系统风控状态</h3>
+            <div class="space-y-3">
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-400">API请求频率</span>
+                  <span class="text-gray-300" x-text="riskStats.apiRate + '%'"></span>
+                </div>
+                <div class="risk-meter">
+                  <div class="risk-fill" :style="'width:' + riskStats.apiRate + '%; background:' + (riskStats.apiRate > 80 ? '#EF4444' : riskStats.apiRate > 50 ? '#F59E0B' : '#22C55E')"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-400">异常登录</span>
+                  <span class="text-gray-300" x-text="riskStats.abnormalLogin + '%'"></span>
+                </div>
+                <div class="risk-meter">
+                  <div class="risk-fill" :style="'width:' + riskStats.abnormalLogin + '%; background:' + (riskStats.abnormalLogin > 60 ? '#EF4444' : '#22C55E')"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-400">高频解密</span>
+                  <span class="text-gray-300" x-text="riskStats.highFreqDecrypt + '%'"></span>
+                </div>
+                <div class="risk-meter">
+                  <div class="risk-fill" :style="'width:' + riskStats.highFreqDecrypt + '%; background:' + (riskStats.highFreqDecrypt > 50 ? '#F59E0B' : '#22C55E')"></div>
+                </div>
+              </div>
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-400">IP限流触发</span>
+                  <span class="text-gray-300" x-text="riskStats.ipThrottle + '%'"></span>
+                </div>
+                <div class="risk-meter">
+                  <div class="risk-fill" :style="'width:' + riskStats.ipThrottle + '%; background:' + (riskStats.ipThrottle > 70 ? '#EF4444' : '#22C55E')"></div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 pt-4 border-t" style="border-color:#1F2937;">
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-gray-500">系统状态</span>
+                <span class="flex items-center gap-1.5 text-green-400 font-semibold">
+                  <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> 运行正常
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity + Top Users -->
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="card p-5">
+            <h3 class="text-sm font-semibold text-white mb-3">最近活动</h3>
+            <div class="space-y-2">
+              <template x-for="(act, i) in recentActivity" :key="i">
+                <div class="flex items-center gap-3 text-xs py-2 border-b" style="border-color:#161E2E;">
+                  <div class="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                       :style="'background:' + (act.type === 'pay' ? 'rgba(34,197,94,.1)' : act.type === 'decrypt' ? 'rgba(245,158,11,.1)' : act.type === 'register' ? 'rgba(99,102,241,.1)' : 'rgba(239,68,68,.1)'">
+                    <span x-text="act.type === 'pay' ? '💰' : act.type === 'decrypt' ? '🔓' : act.type === 'register' ? '👤' : '⚠️'"></span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-gray-300 truncate">
+                      <span class="font-medium" x-text="act.user"></span>
+                      <span class="text-gray-500" x-text="act.action"></span>
+                    </div>
+                    <div class="text-gray-600 text-[10px]" x-text="act.time"></div>
+                  </div>
+                  <span class="text-amber-400 font-semibold text-[10px]" x-show="act.amount" x-text="act.amount"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <div class="card p-5">
+            <h3 class="text-sm font-semibold text-white mb-3">高价值用户 TOP 5</h3>
+            <div class="space-y-2">
+              <template x-for="(u, i) in topUsers" :key="i">
+                <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors cursor-pointer" @click="openUserDetail(u)">
+                  <div class="text-xs font-bold w-5 text-center" :class="i === 0 ? 'text-amber-400' : 'text-gray-600'" x-text="'#' + (i+1)"></div>
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                       :class="i === 0 ? 'gold-bg text-gray-900' : 'bg-gray-700 text-gray-300'">
+                    <span x-text="u.name.charAt(0)"></span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-xs font-medium text-gray-200 truncate" x-text="u.name"></div>
+                    <div class="text-[10px] text-gray-500" x-text="u.email"></div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-xs font-bold gold" x-text="'¥' + u.spent.toFixed(0)"></div>
+                    <div class="text-[10px] text-gray-600" x-text="u.decrypts + ' 次解密'"></div>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ USER MANAGEMENT ============ -->
+      <div x-show="currentView === 'users'" class="space-y-4">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <h2 class="text-lg font-bold text-white">用户管理</h2>
+          <div class="flex items-center gap-2">
+            <input x-model="userSearch" type="text" class="input-field w-48" placeholder="搜索邮箱/名称...">
+            <select x-model="userFilter" class="input-field w-32">
+              <option value="all">全部状态</option>
+              <option value="active">活跃</option>
+              <option value="banned">已封禁</option>
+              <option value="trial">试用中</option>
+              <option value="vip">VIP</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>用户</th>
+                  <th>邮箱</th>
+                  <th>套餐</th>
+                  <th>余额</th>
+                  <th>解密次数</th>
+                  <th>注册时间</th>
+                  <th>状态</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="u in filteredUsers" :key="u.id">
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center text-[10px] font-bold" x-text="u.name.charAt(0)"></div>
+                        <span class="text-gray-200 font-medium" x-text="u.name"></span>
+                      </div>
+                    </td>
+                    <td class="text-gray-500" x-text="u.email"></td>
+                    <td>
+                      <span class="badge" :class="u.plan === 'vip' ? 'badge-vip' : u.plan === 'pro' ? 'badge-trial' : 'badge-active'"
+                            x-text="u.plan === 'vip' ? 'VIP' : u.plan === 'pro' ? 'PRO' : 'FREE'"></span>
+                    </td>
+                    <td class="text-gray-300" x-text="'¥' + u.balance.toFixed(1)"></td>
+                    <td class="text-gray-400" x-text="u.decrypts"></td>
+                    <td class="text-gray-500 text-xs" x-text="u.registered"></td>
+                    <td>
+                      <span class="badge" :class="u.status === 'banned' ? 'badge-banned' : u.status === 'trial' ? 'badge-trial' : 'badge-active'"
+                            x-text="u.status === 'banned' ? '已封禁' : u.status === 'trial' ? '试用' : '活跃'"></span>
+                    </td>
+                    <td>
+                      <div class="flex gap-1">
+                        <button @click="openUserDetail(u)" class="btn-sm btn-gold" title="详情">查看</button>
+                        <button x-show="u.status !== 'banned'" @click="banUser(u)" class="btn-sm btn-danger" title="封禁">封禁</button>
+                        <button x-show="u.status === 'banned'" @click="unbanUser(u)" class="btn-sm btn-success" title="解封">解封</button>
+                        <button @click="resetCredits(u)" class="btn-sm btn-success" title="重置免费额度">重置</button>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="text-xs text-gray-500 text-center" x-text="'共 ' + filteredUsers.length + ' 位用户'"></div>
+      </div>
+
+      <!-- ============ REVENUE ============ -->
+      <div x-show="currentView === 'revenue'" class="space-y-4">
+        <h2 class="text-lg font-bold text-white">营收统计</h2>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="kpi-card">
+            <div class="text-xs text-gray-500 mb-1">今日营收</div>
+            <div class="text-xl font-bold gold" x-text="'¥' + revStats.today.toFixed(2)"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="text-xs text-gray-500 mb-1">本月营收</div>
+            <div class="text-xl font-bold gold" x-text="'¥' + revStats.month.toFixed(2)"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="text-xs text-gray-500 mb-1">总营收</div>
+            <div class="text-xl font-bold gold" x-text="'¥' + revStats.total.toFixed(2)"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="text-xs text-gray-500 mb-1">ARPU</div>
+            <div class="text-xl font-bold text-white" x-text="'¥' + revStats.arpu.toFixed(2)"></div>
+          </div>
+        </div>
+
+        <!-- Revenue by plan -->
+        <div class="card p-5">
+          <h3 class="text-sm font-semibold text-white mb-4">各套餐营收分布</h3>
+          <div class="space-y-3">
+            <template x-for="plan in planRevenue" :key="plan.name">
+              <div>
+                <div class="flex justify-between text-xs mb-1">
+                  <span class="text-gray-300 font-medium" x-text="plan.name"></span>
+                  <span class="gold font-bold" x-text="'¥' + plan.amount.toFixed(0) + ' (' + plan.pct + '%)'"></span>
+                </div>
+                <div class="risk-meter">
+                  <div class="risk-fill" :style="'width:' + plan.pct + '%; background:linear-gradient(90deg,#F59E0B,#D97706)'"></div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Transaction log -->
+        <div class="card overflow-hidden">
+          <div class="p-4 border-b" style="border-color:#1F2937;">
+            <h3 class="text-sm font-semibold text-white">交易记录</h3>
+          </div>
+          <div class="overflow-x-auto max-h-96">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>用户</th>
+                  <th>类型</th>
+                  <th>金额</th>
+                  <th>状态</th>
+                  <th>订单号</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="tx in transactions" :key="tx.id">
+                  <tr>
+                    <td class="text-gray-500 text-xs whitespace-nowrap" x-text="tx.time"></td>
+                    <td class="text-gray-300" x-text="tx.user"></td>
+                    <td>
+                      <span class="badge" :class="tx.type === 'recharge' ? 'badge-active' : 'badge-trial'" x-text="tx.type === 'recharge' ? '充值' : '订阅'"></span>
+                    </td>
+                    <td class="gold font-semibold" x-text="'¥' + tx.amount.toFixed(2)"></td>
+                    <td>
+                      <span class="badge badge-active" x-show="tx.status === 'success'">成功</span>
+                      <span class="badge badge-banned" x-show="tx.status === 'failed'">失败</span>
+                    </td>
+                    <td class="text-gray-600 text-xs font-mono" x-text="tx.orderId"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ RISK CONFIG ============ -->
+      <div x-show="currentView === 'risk'" class="space-y-4">
+        <h2 class="text-lg font-bold text-white">风控阈值配置</h2>
+
+        <div class="card p-5">
+          <h3 class="text-sm font-semibold text-white mb-4">限流策略</h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs text-gray-300 font-medium">账号级限流</div>
+                <div class="text-[10px] text-gray-500">单账号 60 秒内最大请求数</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <input x-model.number="riskConfig.accountLimit" type="number" class="input-field w-20 text-center">
+                <span class="text-xs text-gray-500">次/60s</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs text-gray-300 font-medium">IP级限流</div>
+                <div class="text-[10px] text-gray-500">单IP 60 秒内最大请求数</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <input x-model.number="riskConfig.ipLimit" type="number" class="input-field w-20 text-center">
+                <span class="text-xs text-gray-500">次/60s</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs text-gray-300 font-medium">冷却时长</div>
+                <div class="text-[10px] text-gray-500">触发限流后的冷却时间</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <input x-model.number="riskConfig.cooldown" type="number" class="input-field w-20 text-center">
+                <span class="text-xs text-gray-500">秒</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-5">
+          <h3 class="text-sm font-semibold text-white mb-4">扣费策略</h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs text-gray-300 font-medium">每日免费额度</div>
+                <div class="text-[10px] text-gray-500">每个用户每天免费解密次数</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <input x-model.number="riskConfig.dailyFree" type="number" class="input-field w-20 text-center">
+                <span class="text-xs text-gray-500">次/天</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs text-gray-300 font-medium">单次解密费用</div>
+                <div class="text-[10px] text-gray-500">超出免费额度后每次解密费用</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500">¥</span>
+                <input x-model.number="riskConfig.decryptPrice" type="number" step="0.5" class="input-field w-20 text-center">
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs text-gray-300 font-medium">余额预警线</div>
+                <div class="text-[10px] text-gray-500">低于此值提醒用户充值</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500">¥</span>
+                <input x-model.number="riskConfig.balanceWarning" type="number" class="input-field w-20 text-center">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card p-5">
+          <h3 class="text-sm font-semibold text-white mb-4">功能开关</h3>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="text-xs text-gray-300">新用户注册</div>
+              <div class="toggle" :class="riskConfig.enableRegister ? 'on' : ''" @click="riskConfig.enableRegister = !riskConfig.enableRegister">
+                <div class="toggle-knob"></div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-xs text-gray-300">实时线索推送</div>
+              <div class="toggle" :class="riskConfig.enableRealtime ? 'on' : ''" @click="riskConfig.enableRealtime = !riskConfig.enableRealtime">
+                <div class="toggle-knob"></div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-xs text-gray-300">AI话术生成</div>
+              <div class="toggle" :class="riskConfig.enableAI ? 'on' : ''" @click="riskConfig.enableAI = !riskConfig.enableAI">
+                <div class="toggle-knob"></div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-xs text-gray-300">模拟支付宝充值</div>
+              <div class="toggle" :class="riskConfig.enablePay ? 'on' : ''" @click="riskConfig.enablePay = !riskConfig.enablePay">
+                <div class="toggle-knob"></div>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <div class="text-xs text-gray-300">自动封禁高风险IP</div>
+              <div class="toggle" :class="riskConfig.autoBan ? 'on' : ''" @click="riskConfig.autoBan = !riskConfig.autoBan">
+                <div class="toggle-knob"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <button @click="saveRiskConfig()" class="btn-gold px-6 py-2.5 rounded-xl text-sm">保存配置</button>
+          <button @click="resetRiskConfig()" class="px-4 py-2.5 rounded-xl text-xs text-gray-500 hover:text-gray-300 transition-colors">恢复默认</button>
+        </div>
+      </div>
+
+      <!-- ============ ALERTS ============ -->
+      <div x-show="currentView === 'alerts'" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold text-white">风控告警</h2>
+          <button @click="clearAlerts()" class="text-xs text-gray-500 hover:text-red-400 transition-colors">清除已读</button>
+        </div>
+
+        <div class="space-y-2">
+          <template x-for="alert in riskAlerts" :key="alert.id">
+            <div class="card p-4 flex items-start gap-3" :class="alert.severity === 'critical' ? 'alert-pulse' : ''"
+                 :style="alert.severity === 'critical' ? 'border-color:rgba(239,68,68,.3)' : alert.severity === 'warning' ? 'border-color:rgba(245,158,11,.2)' : ''">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                   :style="alert.severity === 'critical' ? 'background:rgba(239,68,68,.12)' : 'background:rgba(245,158,11,.12)'">
+                <span x-text="alert.severity === 'critical' ? '🔴' : '🟡'"></span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-xs font-bold" :class="alert.severity === 'critical' ? 'text-red-400' : 'text-amber-400'"
+                        x-text="alert.severity === 'critical' ? '严重' : '警告'"></span>
+                  <span class="text-xs text-gray-500" x-text="alert.type"></span>
+                  <span class="text-[10px] text-gray-600 ml-auto" x-text="alert.time"></span>
+                </div>
+                <div class="text-xs text-gray-300" x-text="alert.message"></div>
+                <div class="text-[10px] text-gray-600 mt-1" x-text="'IP: ' + alert.ip + ' | 用户: ' + alert.user"></div>
+              </div>
+              <button @click="dismissAlert(alert.id)" class="text-gray-600 hover:text-gray-400 text-xs flex-shrink-0">✕</button>
+            </div>
+          </template>
+        </div>
+
+        <div x-show="riskAlerts.length === 0" class="text-center py-16 text-gray-600 text-sm">
+          <div class="text-4xl mb-3">✅</div>
+          <p>暂无告警，系统运行正常</p>
+        </div>
+      </div>
+
+      <!-- ============ AUDIT LOG ============ -->
+      <div x-show="currentView === 'audit'" class="space-y-4">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <h2 class="text-lg font-bold text-white">审计日志</h2>
+          <div class="flex items-center gap-2">
+            <select x-model="auditFilter" class="input-field w-36">
+              <option value="all">全部操作</option>
+              <option value="decrypt">解密</option>
+              <option value="payment">支付</option>
+              <option value="login">登录</option>
+              <option value="admin">管理操作</option>
+            </select>
+            <input x-model="auditSearch" type="text" class="input-field w-48" placeholder="搜索...">
+          </div>
+        </div>
+
+        <div class="card overflow-hidden">
+          <div class="overflow-x-auto max-h-[calc(100vh-220px)]">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>时间</th>
+                  <th>用户</th>
+                  <th>操作类型</th>
+                  <th>详情</th>
+                  <th>IP地址</th>
+                  <th>状态</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="log in filteredAuditLogs" :key="log.id">
+                  <tr>
+                    <td class="text-gray-500 text-xs whitespace-nowrap" x-text="log.time"></td>
+                    <td class="text-gray-300" x-text="log.user"></td>
+                    <td>
+                      <span class="badge"
+                            :class="log.type === 'decrypt' ? 'badge-trial' : log.type === 'payment' ? 'badge-active' : log.type === 'login' ? 'badge-vip' : 'badge-banned'"
+                            x-text="log.type === 'decrypt' ? '解密' : log.type === 'payment' ? '支付' : log.type === 'login' ? '登录' : '管理'"></span>
+                    </td>
+                    <td class="text-gray-400 text-xs max-w-xs truncate" x-text="log.detail"></td>
+                    <td class="text-gray-600 text-xs font-mono" x-text="log.ip"></td>
+                    <td>
+                      <span class="text-green-400 text-xs" x-show="log.status === 'ok'">✓</span>
+                      <span class="text-red-400 text-xs" x-show="log.status === 'fail'">✕</span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ CLUE MANAGEMENT ============ -->
+      <div x-show="currentView === 'clues'" class="space-y-4">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <h2 class="text-lg font-bold text-white">线索管理</h2>
+          <button @click="showAddClueModal = true" class="btn-gold btn-sm">+ 添加线索</button>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="kpi-card"><div class="text-xs text-gray-500 mb-1">总线索</div><div class="text-xl font-bold text-white" x-text="clueStats.total"></div></div>
+          <div class="kpi-card"><div class="text-xs text-gray-500 mb-1">已解密</div><div class="text-xl font-bold gold" x-text="clueStats.decrypted"></div></div>
+          <div class="kpi-card"><div class="text-xs text-gray-500 mb-1">待处理</div><div class="text-xl font-bold text-gray-300" x-text="clueStats.pending"></div></div>
+          <div class="kpi-card"><div class="text-xs text-gray-500 mb-1">转化率</div><div class="text-xl font-bold text-green-400" x-text="clueStats.conversion + '%'"></div></div>
+        </div>
+
+        <div class="card overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>买家</th>
+                  <th>国家</th>
+                  <th>来源</th>
+                  <th>关键词</th>
+                  <th>评分</th>
+                  <th>解密次数</th>
+                  <th>生成时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="clue in clueList" :key="clue.id">
+                  <tr>
+                    <td class="text-gray-300" x-text="clue.buyer"></td>
+                    <td><span class="text-xs" x-text="clue.country + ' ' + clue.flag"></span></td>
+                    <td class="text-gray-500 text-xs" x-text="clue.source"></td>
+                    <td><span class="badge badge-trial" x-text="clue.keyword"></span></td>
+                    <td><span class="badge" :class="clue.score >= 80 ? 'badge-banned' : clue.score >= 60 ? 'badge-trial' : 'badge-active'" x-text="clue.score"></span></td>
+                    <td class="text-gray-400" x-text="clue.decryptCount"></td>
+                    <td class="text-gray-500 text-xs" x-text="clue.created"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+</template>
+
+<!-- USER DETAIL MODAL -->
+<div class="modal-overlay" x-show="showUserModal" x-cloak @click.self="showUserModal = false">
+  <div class="modal-box" x-show="showUserModal">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-bold text-white">用户详情</h3>
+      <button @click="showUserModal = false" class="text-gray-500 hover:text-white text-lg">✕</button>
+    </div>
+    <template x-if="selectedUser">
+      <div class="space-y-3">
+        <div class="flex items-center gap-3 pb-4 border-b" style="border-color:#1F2937;">
+          <div class="w-12 h-12 rounded-full gold-bg flex items-center justify-center text-lg font-black text-gray-900" x-text="selectedUser.name.charAt(0)"></div>
+          <div>
+            <div class="text-sm font-bold text-white" x-text="selectedUser.name"></div>
+            <div class="text-xs text-gray-500" x-text="selectedUser.email"></div>
+          </div>
+          <span class="badge ml-auto" :class="selectedUser.status === 'banned' ? 'badge-banned' : 'badge-active'" x-text="selectedUser.status === 'banned' ? '已封禁' : '活跃'"></span>
+        </div>
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div class="card-inner p-3"><div class="text-gray-500 mb-1">套餐</div><div class="text-white font-semibold uppercase" x-text="selectedUser.plan"></div></div>
+          <div class="card-inner p-3"><div class="text-gray-500 mb-1">余额</div><div class="gold font-bold" x-text="'¥' + selectedUser.balance?.toFixed(2)"></div></div>
+          <div class="card-inner p-3"><div class="text-gray-500 mb-1">总解密</div><div class="text-white font-semibold" x-text="selectedUser.decrypts + ' 次'"></div></div>
+          <div class="card-inner p-3"><div class="text-gray-500 mb-1">注册时间</div><div class="text-gray-300" x-text="selectedUser.registered"></div></div>
+        </div>
+        <div class="flex gap-2 pt-3">
+          <button @click="adjustBalance(selectedUser)" class="btn-gold btn-sm flex-1 py-2">调整余额</button>
+          <button x-show="selectedUser.status !== 'banned'" @click="banUser(selectedUser); showUserModal = false" class="btn-danger btn-sm flex-1 py-2">封禁账号</button>
+          <button x-show="selectedUser.status === 'banned'" @click="unbanUser(selectedUser); showUserModal = false" class="btn-success btn-sm flex-1 py-2">解封账号</button>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>
+
+<!-- ADD CLUE MODAL -->
+<div class="modal-overlay" x-show="showAddClueModal" x-cloak @click.self="showAddClueModal = false">
+  <div class="modal-box" x-show="showAddClueModal">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-bold text-white">添加线索</h3>
+      <button @click="showAddClueModal = false" class="text-gray-500 hover:text-white text-lg">✕</button>
+    </div>
+    <div class="space-y-3">
+      <input x-model="newClue.buyer" type="text" class="input-field" placeholder="买家名称">
+      <div class="flex gap-2">
+        <input x-model="newClue.country" type="text" class="input-field" placeholder="国家">
+        <input x-model="newClue.source" type="text" class="input-field" placeholder="来源平台">
+      </div>
+      <input x-model="newClue.keyword" type="text" class="input-field" placeholder="匹配关键词">
+      <input x-model.number="newClue.score" type="number" class="input-field" placeholder="评分 (0-100)">
+      <textarea x-model="newClue.content" class="input-field h-20 resize-none" placeholder="采购需求描述..."></textarea>
+      <button @click="addClue()" class="btn-gold w-full py-2.5 rounded-xl text-sm">确认添加</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div x-show="toast.show" x-cloak x-transition
+     class="fixed bottom-6 right-6 z-[300] px-5 py-3 rounded-xl text-sm font-medium"
+     :class="toast.type === 'success' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : toast.type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'"
+     style="backdrop-filter:blur(12px);">
+  <span x-text="toast.msg"></span>
+</div>
+
+<script>
+function adminPanel() {
+  return {
+    authed: false,
+    loginEmail: '',
+    loginPass: '',
+    loginError: '',
+    currentView: 'overview',
+    clockText: '',
+    lastUpdate: '',
+    toast: { show: false, msg: '', type: 'info' },
+
+    // Stats
+    stats: {
+      totalUsers: 12847,
+      newUsersToday: 38,
+      monthRevenue: 89420,
+      revenueGrowth: 23.5,
+      totalDecrypts: 45623,
+      decryptsToday: 412,
+      activeSubs: 326,
+    },
+
+    // Revenue
+    revStats: { today: 3260.5, month: 89420.0, total: 456780.5, arpu: 286.5 },
+    revenueChart: [],
+    maxRev: 1,
+    planRevenue: [
+      { name: 'VIP 年付 ¥2,988', amount: 59800, pct: 67 },
+      { name: 'PRO 月付 ¥299', amount: 21500, pct: 24 },
+      { name: '按次付费 ¥3/次', amount: 8120, pct: 9 },
+    ],
+    transactions: [],
+
+    // Risk
+    riskStats: { apiRate: 34, abnormalLogin: 12, highFreqDecrypt: 28, ipThrottle: 15 },
+    riskConfig: {
+      accountLimit: 20,
+      ipLimit: 40,
+      cooldown: 300,
+      dailyFree: 5,
+      decryptPrice: 3,
+      balanceWarning: 10,
+      enableRegister: true,
+      enableRealtime: true,
+      enableAI: true,
+      enablePay: true,
+      autoBan: false,
+    },
+
+    // Users
+    users: [],
+    userSearch: '',
+    userFilter: 'all',
+    showUserModal: false,
+    selectedUser: null,
+
+    // Alerts
+    riskAlerts: [],
+    alertCount: 0,
+
+    // Audit
+    auditLogs: [],
+    auditFilter: 'all',
+    auditSearch: '',
+
+    // Clues
+    clueStats: { total: 8463, decrypted: 3217, pending: 5246, conversion: 38.0 },
+    clueList: [],
+    showAddClueModal: false,
+    newClue: { buyer: '', country: '', source: '', keyword: '', score: 70, content: '' },
+
+    // Activity
+    recentActivity: [],
+    topUsers: [],
+
+    init() {
+      // Check stored auth
+      const stored = localStorage.getItem('admin_authed');
+      if (stored === 'true') this.authed = true;
+
+      this.generateRevenueChart();
+      this.generateUsers();
+      this.generateTransactions();
+      this.generateAlerts();
+      this.generateAuditLogs();
+      this.generateClues();
+      this.generateActivity();
+      this.generateTopUsers();
+      this.startClock();
+
+      // Simulate new alerts
+      setInterval(() => {
+        if (Math.random() > 0.7) this.addRandomAlert();
+      }, 15000);
+    },
+
+    tryLogin() {
+      if (this.loginEmail === 'oraora2026@163.com' && this.loginPass.length >= 4) {
+        this.authed = true;
+        localStorage.setItem('admin_authed', 'true');
+        this.showToast('登录成功', 'success');
+      } else {
+        this.loginError = '邮箱或密码错误，仅管理员可访问';
+      }
+    },
+
+    startClock() {
+      const update = () => {
+        const now = new Date();
+        this.clockText = now.toLocaleString('zh-CN', { hour12: false });
+        this.lastUpdate = now.toLocaleTimeString('zh-CN', { hour12: false });
+      };
+      update();
+      setInterval(update, 1000);
+    },
+
+    generateRevenueChart() {
+      const days = [];
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 86400000);
+        const label = (d.getMonth() + 1) + '/' + d.getDate();
+        const val = Math.floor(2000 + Math.random() * 4000 + (i < 7 ? 1000 : 0));
+        days.push({ d: label, v: val });
+      }
+      this.revenueChart = days;
+      this.maxRev = Math.max(...days.map(d => d.v));
+    },
+
+    generateUsers() {
+      const names = ['张伟','李娜','王芳','刘洋','陈明','杨静','赵磊','黄丽','周杰','吴婷','徐强','孙琳','马超','朱慧','胡军','郭敏','林燕','何鑫','高峰','罗静','郑昊','谢婷','唐勇','冯露','邓飞','彭涛','曹颖','田宇','董洁','袁鹏'];
+      const domains = ['@163.com','@qq.com','@gmail.com','@outlook.com','@foxmail.com'];
+      const plans = ['free','pro','vip'];
+      const countries = ['🇺🇸','🇩🇪','🇨🇦','🇦🇺','🇬🇧','🇲🇽','🇦🇪','🇫🇷','🇪🇸','🇮🇹'];
+
+      this.users = names.map((n, i) => {
+        const plan = plans[Math.floor(Math.random() * plans.length)];
+        const status = Math.random() > 0.9 ? 'banned' : plan === 'free' ? 'trial' : 'active';
+        return {
+          id: i + 1,
+          name: n,
+          email: n.toLowerCase().replace(/[^\w]/g,'') + domains[i % domains.length],
+          plan,
+          balance: plan === 'free' ? Math.random() * 50 : 50 + Math.random() * 500,
+          decrypts: Math.floor(Math.random() * 200),
+          registered: '2025-' + String(Math.floor(Math.random()*6)+1).padStart(2,'0') + '-' + String(Math.floor(Math.random()*28)+1).padStart(2,'0'),
+          status,
+        };
+      });
+    },
+
+    get filteredUsers() {
+      let list = this.users;
+      if (this.userFilter !== 'all') {
+        list = list.filter(u => u.status === this.userFilter || u.plan === this.userFilter);
+      }
+      if (this.userSearch) {
+        const q = this.userSearch.toLowerCase();
+        list = list.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+      }
+      return list;
+    },
+
+    openUserDetail(u) {
+      this.selectedUser = u;
+      this.showUserModal = true;
+    },
+
+    banUser(u) {
+      u.status = 'banned';
+      this.showToast('已封禁用户 ' + u.name, 'error');
+      this.auditLogs.unshift({ id: Date.now(), time: new Date().toLocaleString('zh-CN',{hour12:false}), user: u.name, type: 'admin', detail: '管理员封禁用户', ip: '127.0.0.1', status: 'ok' });
+    },
+
+    unbanUser(u) {
+      u.status = 'active';
+      this.showToast('已解封用户 ' + u.name, 'success');
+    },
+
+    resetCredits(u) {
+      this.showToast('已重置 ' + u.name + ' 的免费额度', 'success');
+    },
+
+    adjustBalance(u) {
+      const amt = prompt('调整余额（正数增加，负数扣除）：', '100');
+      if (amt !== null) {
+        u.balance += parseFloat(amt) || 0;
+        this.showToast('余额已调整 ¥' + amt, 'success');
+      }
+    },
+
+    generateTransactions() {
+      const types = ['recharge','subscription'];
+      const amounts = [100, 200, 299, 500, 2988, 50, 300];
+      this.transactions = Array.from({length: 20}, (_, i) => {
+        const d = new Date(Date.now() - i * 3600000 * Math.random() * 24);
+        return {
+          id: i,
+          time: d.toLocaleString('zh-CN', {hour12:false, month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'}),
+          user: this.users[Math.floor(Math.random() * this.users.length)].name,
+          type: types[Math.floor(Math.random() * types.length)],
+          amount: amounts[Math.floor(Math.random() * amounts.length)],
+          status: Math.random() > 0.05 ? 'success' : 'failed',
+          orderId: 'ORD' + Date.now().toString(36).toUpperCase() + Math.floor(Math.random()*1000),
+        };
+      });
+    },
+
+    generateAlerts() {
+      const types = ['高频API请求','异常登录地点','批量解密行为','IP限流触发','余额异常变动'];
+      const ips = ['203.45.' + Math.floor(Math.random()*255) + '.' + Math.floor(Math.random()*255), '118.26.' + Math.floor(Math.random()*255) + '.' + Math.floor(Math.random()*255)];
+      this.riskAlerts = Array.from({length: 5}, (_, i) => ({
+        id: i + 1,
+        severity: Math.random() > 0.5 ? 'critical' : 'warning',
+        type: types[Math.floor(Math.random() * types.length)],
+        message: '检测到用户在短时间内发送大量请求，触发频率限制。系统已自动冷却该IP。',
+        ip: ips[Math.floor(Math.random() * ips.length)],
+        user: this.users[Math.floor(Math.random() * this.users.length)].name,
+        time: new Date(Date.now() - i * 600000).toLocaleTimeString('zh-CN', {hour12:false}),
+      }));
+      this.alertCount = this.riskAlerts.filter(a => a.severity === 'critical').length;
+    },
+
+    addRandomAlert() {
+      const types = ['高频API请求','异常登录地点','批量解密行为','IP限流触发'];
+      const alert = {
+        id: Date.now(),
+        severity: Math.random() > 0.6 ? 'critical' : 'warning',
+        type: types[Math.floor(Math.random() * types.length)],
+        message: '检测到异常活动模式，已触发自动风控策略。',
+        ip: Math.floor(Math.random()*255) + '.' + Math.floor(Math.random()*255) + '.' + Math.floor(Math.random()*255) + '.' + Math.floor(Math.random()*255),
+        user: this.users[Math.floor(Math.random() * this.users.length)].name,
+        time: new Date().toLocaleTimeString('zh-CN', {hour12:false}),
+      };
+      this.riskAlerts.unshift(alert);
+      if (alert.severity === 'critical') this.alertCount++;
+      this.showToast('新风控告警: ' + alert.type, 'error');
+    },
+
+    dismissAlert(id) {
+      this.riskAlerts = this.riskAlerts.filter(a => a.id !== id);
+      this.alertCount = this.riskAlerts.filter(a => a.severity === 'critical').length;
+    },
+
+    clearAlerts() {
+      this.riskAlerts = [];
+      this.alertCount = 0;
+      this.showToast('告警已清除', 'success');
+    },
+
+    generateAuditLogs() {
+      const types = ['decrypt','payment','login','admin'];
+      const details = {
+        decrypt: ['解密线索: 割草机采购商','解密线索: LED灯条批发','解密线索: 电动工具买家','解密线索: 园林机械需求'],
+        payment: ['充值 ¥100','充值 ¥500','购买VIP年付 ¥2988','充值 ¥200','购买PRO月付 ¥299'],
+        login: ['邮箱密码登录','Google OAuth登录','登录失败-密码错误','登录成功'],
+        admin: ['重置用户免费额度','修改风控阈值','封禁用户','导出审计日志'],
+      };
+      const ips = ['203.45.12.67','118.26.89.34','59.108.45.12','223.71.89.45'];
+
+      this.auditLogs = Array.from({length: 50}, (_, i) => {
+        const type = types[Math.floor(Math.random() * types.length)];
+        const d = new Date(Date.now() - i * 600000 * Math.random() * 10);
+        return {
+          id: i + 1,
+          time: d.toLocaleString('zh-CN', {hour12:false, month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit'}),
+          user: this.users[Math.floor(Math.random() * this.users.length)].name,
+          type,
+          detail: details[type][Math.floor(Math.random() * details[type].length)],
+          ip: ips[Math.floor(Math.random() * ips.length)],
+          status: Math.random() > 0.1 ? 'ok' : 'fail',
+        };
+      });
+    },
+
+    get filteredAuditLogs() {
+      let list = this.auditLogs;
+      if (this.auditFilter !== 'all') {
+        list = list.filter(l => l.type === this.auditFilter);
+      }
+      if (this.auditSearch) {
+        const q = this.auditSearch.toLowerCase();
+        list = list.filter(l => l.user.toLowerCase().includes(q) || l.detail.toLowerCase().includes(q) || l.ip.includes(q));
+      }
+      return list;
+    },
+
+    generateClues() {
+      const buyers = ['John Smith','Hans Mueller','Pierre Dubois','Carlos Garcia','Ahmed Ali','Yuki Tanaka','Olga Petrova','David Wilson'];
+      const countries = [['美国','🇺🇸'],['德国','🇩🇪'],['法国','🇫🇷'],['西班牙','🇪🇸'],['阿联酋','🇦🇪'],['日本','🇯🇵'],['俄罗斯','🇷🇺'],['澳大利亚','🇦🇺']];
+      const sources = ['Reddit','Facebook群组','LinkedIn','行业论坛','WhatsApp群','Alibaba询盘'];
+      const keywords = ['割草机','LED灯条','电动工具','太阳能板','园林机械','工业水泵'];
+
+      this.clueList = Array.from({length: 15}, (_, i) => {
+        const c = countries[Math.floor(Math.random() * countries.length)];
+        return {
+          id: i + 1,
+          buyer: buyers[Math.floor(Math.random() * buyers.length)],
+          country: c[0],
+          flag: c[1],
+          source: sources[Math.floor(Math.random() * sources.length)],
+          keyword: keywords[Math.floor(Math.random() * keywords.length)],
+          score: Math.floor(50 + Math.random() * 50),
+          decryptCount: Math.floor(Math.random() * 30),
+          created: new Date(Date.now() - i * 3600000).toLocaleString('zh-CN',{hour12:false, month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
+        };
+      });
+    },
+
+    addClue() {
+      if (!this.newClue.buyer || !this.newClue.keyword) {
+        this.showToast('请填写必填字段', 'error');
+        return;
+      }
+      this.clueList.unshift({
+        id: Date.now(),
+        buyer: this.newClue.buyer,
+        country: this.newClue.country || '未知',
+        flag: '🌍',
+        source: this.newClue.source || '手动添加',
+        keyword: this.newClue.keyword,
+        score: this.newClue.score || 70,
+        decryptCount: 0,
+        created: new Date().toLocaleString('zh-CN',{hour12:false, month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}),
+      });
+      this.clueStats.total++;
+      this.showAddClueModal = false;
+      this.newClue = { buyer: '', country: '', source: '', keyword: '', score: 70, content: '' };
+      this.showToast('线索已添加', 'success');
+    },
+
+    generateActivity() {
+      const actions = ['完成了一笔充值','解密了新线索','注册了新账号','触发风控告警','升级到VIP套餐','导出了线索数据'];
+      const amounts = ['¥100','¥500','¥2988','¥200','¥299','¥1000'];
+      this.recentActivity = Array.from({length: 10}, (_, i) => {
+        const type = ['pay','decrypt','register','alert'][Math.floor(Math.random() * 4)];
+        return {
+          type,
+          user: this.users[Math.floor(Math.random() * this.users.length)].name,
+          action: actions[Math.floor(Math.random() * actions.length)],
+          amount: type === 'pay' ? amounts[Math.floor(Math.random() * amounts.length)] : '',
+          time: new Date(Date.now() - i * 300000).toLocaleTimeString('zh-CN',{hour12:false, hour:'2-digit', minute:'2-digit'}),
+        };
+      });
+    },
+
+    generateTopUsers() {
+      this.topUsers = [...this.users]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 5)
+        .map(u => ({
+          ...u,
+          spent: 500 + Math.random() * 5000,
+          decrypts: u.decrypts,
+        }))
+        .sort((a, b) => b.spent - a.spent);
+    },
+
+    saveRiskConfig() {
+      localStorage.setItem('risk_config', JSON.stringify(this.riskConfig));
+      this.showToast('风控配置已保存', 'success');
+      this.auditLogs.unshift({ id: Date.now(), time: new Date().toLocaleString('zh-CN',{hour12:false}), user: 'Admin', type: 'admin', detail: '更新风控配置', ip: '127.0.0.1', status: 'ok' });
+    },
+
+    resetRiskConfig() {
+      this.riskConfig = {
+        accountLimit: 20, ipLimit: 40, cooldown: 300, dailyFree: 5,
+        decryptPrice: 3, balanceWarning: 10,
+        enableRegister: true, enableRealtime: true, enableAI: true,
+        enablePay: true, autoBan: false,
+      };
+      this.showToast('已恢复默认配置', 'info');
+    },
+
+    showToast(msg, type = 'info') {
+      this.toast = { show: true, msg, type };
+      setTimeout(() => this.toast.show = false, 3000);
+    },
+  };
+}
+</script>
+
+<style>[x-cloak]{display:none!important}</style>
+</body>
+</html>

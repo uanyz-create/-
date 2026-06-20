@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>出海雷达 AI - 仪表盘</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #0B0F19;
+      color: #E2E8F0;
+      overflow: hidden;
+    }
+    /* Gold colors */
+    .gold { color: #F59E0B; }
+    .gold-bg { background: #F59E0B; }
+    .btn-gold { background: linear-gradient(135deg,#F59E0B,#D97706); color: #0B0F19; font-weight: 700; transition: all .2s; }
+    .btn-gold:hover { box-shadow: 0 4px 20px rgba(245,158,11,.4); transform: translateY(-1px); }
+    .btn-gold:active { transform: scale(.98); }
+    .btn-sm { padding: 6px 14px; border-radius: 8px; font-size: 12px; }
+    .card { background: #111827; border: 1px solid #1F2937; border-radius: 16px; }
+    .card-inner { background: #0D1117; border: 1px solid #1A2233; border-radius: 12px; }
+    .input-field {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #E2E8F0;
+      font-size: 13px;
+      outline: none;
+      width: 100%;
+      transition: border-color .2s;
+    }
+    .input-field:focus { border-color: #F59E0B; }
+    .input-field::placeholder { color: #4B5563; }
+    /* Sidebar scrollable */
+    .sidebar-scroll { overflow-y: auto; height: calc(100vh - 56px); }
+    .sidebar-scroll::-webkit-scrollbar { width: 3px; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(245,158,11,.2); border-radius: 2px; }
+    /* Clue card */
+    .clue-card {
+      background: #111827;
+      border: 1px solid #1F2937;
+      border-radius: 14px;
+      transition: all .25s;
+      cursor: pointer;
+    }
+    .clue-card:hover { border-color: rgba(245,158,11,.25); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,0,0,.4); }
+    .clue-card.active { border-color: rgba(245,158,11,.5); background: rgba(245,158,11,.04); }
+    .clue-card.new-pulse {
+      animation: gold-pulse 2.2s ease-out;
+      border-color: rgba(245,158,11,.6);
+    }
+    @keyframes gold-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(245,158,11,.6); }
+      50% { box-shadow: 0 0 0 12px rgba(245,158,11,.0); }
+      100% { box-shadow: 0 0 0 0 rgba(245,158,11,.0); }
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .slide-down { animation: slideDown .4s ease-out; }
+    /* Blur mask */
+    .masked { filter: blur(5px); user-select: none; pointer-events: none; }
+    /* Score badge */
+    .score-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+    .score-high { background: rgba(239,68,68,.12); color: #EF4444; border: 1px solid rgba(239,68,68,.25); }
+    .score-med { background: rgba(245,158,11,.12); color: #F59E0B; border: 1px solid rgba(245,158,11,.25); }
+    .score-low { background: rgba(107,114,128,.12); color: #9CA3AF; border: 1px solid rgba(107,114,128,.25); }
+    /* Accordion */
+    .accordion-body { overflow: hidden; transition: max-height .3s ease; }
+    /* Tab */
+    .tab-btn { padding: 8px 16px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; transition: all .2s; color: #6B7280; }
+    .tab-btn.active { color: #F59E0B; border-bottom-color: #F59E0B; background: rgba(245,158,11,.05); }
+    /* Tone slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%; height: 4px;
+      background: linear-gradient(90deg, #1F2937 0%, #1F2937 100%);
+      border-radius: 2px; outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      background: #F59E0B;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(245,158,11,.5);
+    }
+    /* Typewriter */
+    .typewriter-cursor::after { content: '|'; animation: blink .7s infinite; color: #F59E0B; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    /* Mobile tabs */
+    .mobile-tabs { display: none; }
+    @media(max-width:768px) {
+      body { overflow: auto; }
+      .desktop-layout { display: none !important; }
+      .mobile-tabs { display: flex; }
+      .mobile-panel { display: none; }
+      .mobile-panel.active { display: block; }
+      .sidebar-scroll { height: auto; overflow: visible; }
+    }
+    /* Long press indicator */
+    .long-press-bar {
+      position: absolute; bottom: 0; left: 0;
+      height: 3px; background: linear-gradient(90deg,#F59E0B,#D97706);
+      border-radius: 0 0 14px 14px;
+      width: 0; transition: none;
+    }
+    /* Diff viewer */
+    .diff-added { background: rgba(34,197,94,.08); color: #4ADE80; }
+    .diff-removed { background: rgba(239,68,68,.08); color: #F87171; text-decoration: line-through; }
+    /* Modal */
+    .modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center; }
+    .modal-box { background:#111827;border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:32px;max-width:440px;width:100%;animation:slideDown .3s; }
+    /* Bottom sheet */
+    .bottom-sheet {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #111827; border-top: 1px solid rgba(245,158,11,.2);
+      border-radius: 20px 20px 0 0;
+      padding: 24px; z-index: 150;
+      transform: translateY(0);
+      transition: transform .3s ease;
+    }
+    .bottom-sheet.hidden { transform: translateY(100%); }
+    /* Version diff */
+    .version-item { padding: 10px 12px; border-radius: 10px; cursor: pointer; transition: background .15s; border: 1px solid transparent; }
+    .version-item:hover { background: rgba(245,158,11,.05); border-color: rgba(245,158,11,.1); }
+    .version-item.selected { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.2); }
+    /* Insight cards */
+    .insight-gold { background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.2); border-radius: 12px; }
+    .insight-green { background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.2); border-radius: 12px; }
+    .insight-red { background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2); border-radius: 12px; }
+    /* Notification badge */
+    .notif-badge {
+      position: absolute; top: -6px; right: -6px;
+      min-width: 18px; height: 18px; padding: 0 4px;
+      background: #EF4444; border-radius: 9px;
+      font-size: 10px; font-weight: 700;
+      color: white; display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    /* Wechat bubble */
+    .wechat-bubble {
+      background: #3D7A3D; color: white;
+      padding: 12px 16px; border-radius: 4px 12px 12px 12px;
+      font-size: 13px; line-height: 1.6; position: relative;
+      max-width: 300px;
+    }
+    .wechat-bubble::before {
+      content: ''; position: absolute; left: -8px; top: 8px;
+      border: 8px solid transparent; border-right-color: #3D7A3D;
+      border-left: none;
+    }
+  </style>
+</head>
+<body x-data="dashboard()" x-init="init()">
+
+<!-- TOP BAR -->
+<header class="flex items-center justify-between px-4 h-14 border-b" style="border-color:#1F2937; background:#0D1117; position:relative; z-index:50;">
+  <div class="flex items-center gap-3">
+    <a href="../index.html" class="flex items-center gap-2">
+      <div class="w-7 h-7 rounded-lg gold-bg flex items-center justify-center">
+        <svg class="w-4 h-4 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="1.5" fill="none" opacity=".7"/><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1" fill="none" opacity=".4"/>
+        </svg>
+      </div>
+      <span class="text-sm font-bold text-white hidden sm:block">出海雷达 AI</span>
+    </a>
+    <!-- KPI bar -->
+    <div class="hidden lg:flex items-center gap-4 ml-6 text-xs text-gray-500">
+      <div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span><span>在线社区:</span><span class="text-white font-semibold" x-text="kpi.communities"></span></div>
+      <div>今日新增: <span class="text-green-400 font-semibold" x-text="'+' + kpi.todayNew"></span></div>
+      <div>本月解密: <span class="text-amber-400 font-semibold" x-text="kpi.monthDecrypt"></span></div>
+      <div>本月消耗: <span class="text-red-400 font-semibold" x-text="'¥' + kpi.monthCost.toFixed(2)"></span></div>
+      <div>累计解密: <span class="text-white font-semibold" x-text="kpi.totalDecrypt"></span></div>
+    </div>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <!-- Balance panel -->
+    <div class="hidden sm:flex items-center gap-3 text-xs">
+      <div class="px-3 py-1.5 rounded-lg text-center" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.15)">
+        <span class="text-gray-500">免费额度</span>
+        <span class="ml-1 font-bold" :class="credits.dailyFree >= 5 ? 'text-red-400' : 'text-amber-400'"
+              x-text="credits.dailyFree + '/5'"></span>
+      </div>
+      <div class="px-3 py-1.5 rounded-lg text-center" style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.12)">
+        <span class="text-gray-500">钱包</span>
+        <span class="ml-1 font-bold text-green-400" x-text="'¥' + credits.balance.toFixed(2)"></span>
+      </div>
+      <button @click="showRecharge = true" class="btn-gold btn-sm">充值</button>
+    </div>
+    <button @click="showProfile = !showProfile" class="w-8 h-8 rounded-full gold-bg flex items-center justify-center text-xs font-black text-gray-900">U</button>
+  </div>
+</header>
+
+<!-- DESKTOP THREE-COLUMN LAYOUT -->
+<div class="desktop-layout flex" style="height: calc(100vh - 56px);">
+
+  <!-- LEFT: Intelligence Hub (25%) -->
+  <aside class="sidebar-scroll" style="width:25%;min-width:280px;max-width:340px;border-right:1px solid #1F2937;padding:16px;">
+
+    <!-- Keyword Configurator -->
+    <div class="card p-4 mb-4">
+      <div class="text-xs font-semibold text-amber-400 mb-3 flex items-center gap-1.5">
+        <span>🎯</span> 关键词雷达配置
+      </div>
+      <div class="flex gap-2 mb-3">
+        <input x-model="newKeyword" @keydown.enter="addKeyword()" type="text" class="input-field" placeholder="输入关键词（如：割草机）">
+        <button @click="addKeyword()" class="btn-gold btn-sm flex-shrink-0">添加</button>
+      </div>
+      <!-- Tag manager -->
+      <div class="flex flex-wrap gap-1.5 mb-4" x-show="keywords.length > 0">
+        <template x-for="(kw, i) in keywords" :key="i">
+          <div class="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium"
+               style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:#F59E0B;">
+            <span x-text="kw"></span>
+            <button @click="removeKeyword(i)" class="text-amber-500 hover:text-red-400 transition-colors">×</button>
+          </div>
+        </template>
+      </div>
+      <button @click="launchRadar()" class="btn-gold w-full py-2.5 rounded-xl text-sm flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="6" stroke="currentColor" fill="none" opacity=".7"/><circle cx="12" cy="12" r="10" stroke="currentColor" fill="none" opacity=".4"/></svg>
+        启动全球雷达
+      </button>
+    </div>
+
+    <!-- Company Knowledge Base (Accordion) -->
+    <div class="card mb-4">
+      <div class="p-3 border-b" style="border-color:#1F2937;">
+        <div class="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+          <span>🏢</span> 企业知识库
+          <span class="ml-auto text-gray-600 text-xs font-normal">注入AI话术</span>
+        </div>
+      </div>
+      <div>
+        <!-- Core Advantages -->
+        <div class="border-b" style="border-color:#1F2937;">
+          <button @click="kb.advantagesOpen = !kb.advantagesOpen" class="w-full flex items-center justify-between p-3 text-xs text-gray-300 hover:text-white transition-colors">
+            <span class="font-medium">① 核心优势</span>
+            <svg class="w-3.5 h-3.5 transition-transform" :class="kb.advantagesOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div x-show="kb.advantagesOpen" class="px-3 pb-3">
+            <textarea x-model="kb.advantages" class="input-field resize-none h-20 text-xs" placeholder="例：15年割草机专业制造，CE/EPA双认证，OEM免费打样..."></textarea>
+          </div>
+        </div>
+        <!-- FAQ -->
+        <div class="border-b" style="border-color:#1F2937;">
+          <button @click="kb.faqOpen = !kb.faqOpen" class="w-full flex items-center justify-between p-3 text-xs text-gray-300 hover:text-white transition-colors">
+            <span class="font-medium">② 常见FAQ</span>
+            <svg class="w-3.5 h-3.5 transition-transform" :class="kb.faqOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div x-show="kb.faqOpen" class="px-3 pb-3">
+            <textarea x-model="kb.faq" class="input-field resize-none h-20 text-xs" placeholder="Q: MOQ多少？A: 100台起订&#10;Q: 交货期？A: 30天..."></textarea>
+          </div>
+        </div>
+        <!-- CTA -->
+        <div>
+          <button @click="kb.ctaOpen = !kb.ctaOpen" class="w-full flex items-center justify-between p-3 text-xs text-gray-300 hover:text-white transition-colors">
+            <span class="font-medium">③ 转化CTA</span>
+            <svg class="w-3.5 h-3.5 transition-transform" :class="kb.ctaOpen ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div x-show="kb.ctaOpen" class="px-3 pb-3 space-y-2">
+            <div class="flex gap-2">
+              <input x-model="kb.whatsapp" type="text" class="input-field text-xs" placeholder="WhatsApp: +86...">
+            </div>
+            <div class="flex gap-2">
+              <input x-model="kb.email" type="text" class="input-field text-xs" placeholder="Email: sales@...">
+            </div>
+            <div class="flex gap-3 mt-2">
+              <a :href="'https://wa.me/' + kb.whatsapp.replace(/\D/g,'')" target="_blank"
+                 class="flex-1 py-1.5 text-xs text-center rounded-lg font-medium" style="background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.2);color:#25D366">
+                WhatsApp
+              </a>
+              <a :href="'mailto:' + kb.email" class="flex-1 py-1.5 text-xs text-center rounded-lg font-medium" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);color:#818CF8">
+                Email
+              </a>
+              <button class="flex-1 py-1.5 text-xs text-center rounded-lg font-medium" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#F59E0B">
+                样品
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mini KPI cards (mobile friendly) -->
+    <div class="grid grid-cols-2 gap-2">
+      <div class="card-inner p-3 text-center">
+        <div class="text-lg font-black text-amber-400" x-text="kpi.communities">127</div>
+        <div class="text-xs text-gray-600 mt-0.5">在线社区</div>
+      </div>
+      <div class="card-inner p-3 text-center">
+        <div class="text-lg font-black text-green-400" x-text="'+' + kpi.todayNew">+8</div>
+        <div class="text-xs text-gray-600 mt-0.5">今日新增</div>
+      </div>
+      <div class="card-inner p-3 text-center">
+        <div class="text-lg font-black text-white" x-text="kpi.monthDecrypt">42</div>
+        <div class="text-xs text-gray-600 mt-0.5">本月解密</div>
+      </div>
+      <div class="card-inner p-3 text-center">
+        <div class="text-lg font-black text-red-400" x-text="'¥' + kpi.monthCost.toFixed(1)">¥18.5</div>
+        <div class="text-xs text-gray-600 mt-0.5">本月消耗</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MIDDLE: Radar Feed (45%) -->
+  <main class="sidebar-scroll flex-1" style="border-right:1px solid #1F2937;">
+    <!-- Feed header -->
+    <div class="sticky top-0 z-10 px-4 py-3" style="background:#0B0F19;border-bottom:1px solid #1F2937;">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-semibold text-white">雷达线索流</span>
+          <div class="flex items-center gap-1 text-xs text-gray-500">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+            实时更新
+          </div>
+          <!-- Pending badge -->
+          <div class="relative" x-show="pendingCount > 0">
+            <button @click="flushPending()"
+                    class="text-xs bg-red-500 text-white px-2.5 py-1 rounded-full font-bold animate-pulse hover:bg-red-400 transition-colors"
+                    x-text="'+' + pendingCount + ' 条待显示'"></button>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-gray-500" x-text="filteredClues.length + ' 条线索'"></span>
+          <button @click="filterOpen = !filterOpen" class="text-xs text-gray-400 hover:text-white transition-colors px-2 py-1 rounded" style="border:1px solid #2D3748">
+            筛选
+          </button>
+        </div>
+      </div>
+      <!-- Search -->
+      <div class="relative mt-2">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+        <input x-model="searchQuery" type="text" class="input-field pl-9 text-xs" placeholder="搜索买家、国家、来源、关键词...">
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div x-show="filterOpen" class="px-4 py-2 flex gap-2 flex-wrap" style="background:#0D1117;border-bottom:1px solid #1F2937;">
+      <template x-for="f in filterOptions" :key="f">
+        <button @click="toggleFilter(f)"
+                class="text-xs px-3 py-1 rounded-full transition-all"
+                :class="activeFilters.includes(f) ? 'btn-gold' : 'text-gray-400 hover:text-white'"
+                :style="activeFilters.includes(f) ? '' : 'border:1px solid #2D3748'"
+                x-text="f">
+        </button>
+      </template>
+    </div>
+
+    <!-- Clue cards -->
+    <div class="p-4 space-y-3">
+      <template x-for="(clue, idx) in filteredClues" :key="clue.id">
+        <div class="clue-card relative"
+             :class="{ 'new-pulse': clue.isNew, 'active': selectedClue && selectedClue.id === clue.id }"
+             @click.prevent="selectClue(clue)"
+             @contextmenu.prevent=""
+             x-data="{ pressing: false, pressTimer: null, pressProgress: 0 }"
+             @mousedown="startPress($el, clue, $data)"
+             @mouseup="cancelPress($data)"
+             @mouseleave="cancelPress($data)"
+             @touchstart.prevent="startPress($el, clue, $data)"
+             @touchend="cancelPress($data)">
+
+          <!-- Long press bar (mobile) -->
+          <div class="long-press-bar" :style="'width:' + $data.pressProgress + '%'"></div>
+
+          <div class="p-4">
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <div class="flex items-center gap-2 flex-1 min-w-0">
+                <!-- Avatar (masked if not decrypted) -->
+                <div class="relative flex-shrink-0">
+                  <img :src="clue.decrypted ? clue.avatar_url : 'https://api.dicebear.com/7.x/identicon/svg?seed=' + clue.id"
+                       class="w-9 h-9 rounded-full object-cover"
+                       :class="{ 'masked': !clue.decrypted }"
+                       onerror="this.src='https://api.dicebear.com/7.x/shapes/svg?seed=' + Math.random()">
+                  <span class="absolute -bottom-0.5 -right-0.5 text-base" x-text="clue.country_flag || '🌍'"></span>
+                </div>
+                <div class="min-w-0">
+                  <div class="text-sm font-semibold text-white flex items-center gap-1.5">
+                    <span :class="{ 'masked': !clue.decrypted }" x-text="clue.decrypted ? clue.author : clue.author_masked"></span>
+                    <span x-show="clue.isNew" class="text-xs bg-green-500/10 text-green-400 px-1.5 py-0.5 rounded font-normal">新</span>
+                  </div>
+                  <div class="text-xs text-gray-500 mt-0.5" x-text="clue.community + ' · ' + clue.country"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <span class="score-badge" :class="clue.match_score >= 90 ? 'score-high' : clue.match_score >= 75 ? 'score-med' : 'score-low'"
+                      x-text="clue.match_score + '分'"></span>
+                <span x-show="clue.decrypted" class="text-xs text-green-400 font-medium">✓ 已解密</span>
+              </div>
+            </div>
+
+            <h3 class="text-sm font-semibold text-white mb-1.5 line-clamp-1" x-text="clue.title"></h3>
+            <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed" x-text="clue.excerpt"></p>
+
+            <!-- Tags -->
+            <div class="flex flex-wrap gap-1.5 mt-2" x-show="clue.keyword_tags && clue.keyword_tags.length">
+              <template x-for="tag in (clue.keyword_tags || []).slice(0,3)" :key="tag">
+                <span class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);color:#A5B4FC;" x-text="tag"></span>
+              </template>
+              <span x-show="clue.moq" class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);color:#FCD34D;" x-text="'MOQ: ' + clue.moq"></span>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-between mt-3">
+              <div class="flex items-center gap-1.5 text-xs text-gray-600">
+                <span x-show="clue.budget_range" x-text="'💰 ' + clue.budget_range"></span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-600" x-text="formatTime(clue.created_at)"></span>
+                <button x-show="!clue.decrypted"
+                        @click.stop="decryptClue(clue)"
+                        class="btn-gold btn-sm hidden sm:block">
+                  认领并解密
+                </button>
+                <button x-show="clue.decrypted"
+                        @click.stop="generateScript(clue)"
+                        class="btn-sm text-indigo-400"
+                        style="border:1px solid rgba(99,102,241,.3);background:rgba(99,102,241,.08)">
+                  生成话术
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Empty state -->
+      <div x-show="filteredClues.length === 0" class="text-center py-20">
+        <div class="text-4xl mb-3">🔍</div>
+        <div class="text-gray-500 text-sm">暂无匹配线索</div>
+        <div class="text-gray-600 text-xs mt-1" x-show="keywords.length === 0">请先添加关键词并启动雷达</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT: AI Delivery Console (30%) -->
+  <aside class="sidebar-scroll" style="width:30%;min-width:300px;max-width:400px;padding:16px;">
+
+    <!-- Selected clue info -->
+    <div x-show="!selectedClue" class="text-center py-12 text-gray-600">
+      <div class="text-3xl mb-3">🤖</div>
+      <div class="text-sm">点击左侧线索</div>
+      <div class="text-xs mt-1">AI将为您生成专属话术</div>
+    </div>
+
+    <div x-show="selectedClue">
+      <!-- Clue summary -->
+      <div class="card-inner p-3 mb-4">
+        <div class="text-xs text-gray-500 mb-1">当前线索</div>
+        <div class="text-sm font-semibold text-white line-clamp-1" x-text="selectedClue?.title"></div>
+        <div class="flex items-center gap-2 mt-1 text-xs text-gray-500">
+          <span x-text="selectedClue?.community"></span>
+          <span>·</span>
+          <span x-text="selectedClue?.country"></span>
+          <span x-show="!selectedClue?.decrypted" class="text-red-400 ml-auto">🔒 需先解密</span>
+          <span x-show="selectedClue?.decrypted" class="text-green-400 ml-auto">✓ 已解密</span>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex border-b mb-4" style="border-color:#1F2937;">
+        <button @click="aiTab = 'script'" class="tab-btn" :class="aiTab === 'script' ? 'active' : ''">本地化话术</button>
+        <button @click="aiTab = 'insight'" class="tab-btn" :class="aiTab === 'insight' ? 'active' : ''">买家心理拆解</button>
+        <button @click="aiTab = 'versions'" class="tab-btn" :class="aiTab === 'versions' ? 'active' : ''">历史版本</button>
+      </div>
+
+      <!-- SCRIPT TAB -->
+      <div x-show="aiTab === 'script'">
+        <!-- Tone slider -->
+        <div class="card-inner p-3 mb-3">
+          <div class="flex justify-between text-xs text-gray-500 mb-2">
+            <span>🎩 商务严谨</span>
+            <span class="gold font-semibold" x-text="toneLabels[toneLevel-1]"></span>
+            <span>😎 原生俚语</span>
+          </div>
+          <input type="range" min="1" max="4" step="1" x-model.number="toneLevel"
+                 @change="scriptGenerated && generateScript(selectedClue)"
+                 style="background: linear-gradient(90deg, #F59E0B 0%, #F59E0B calc((var(--v, 50%) )), #1F2937 calc((var(--v, 50%))))"
+                 :style="'--v:' + ((toneLevel-1)/3*100) + '%'">
+          <div class="flex justify-between mt-1">
+            <template x-for="label in toneChips" :key="label">
+              <span class="text-xs text-gray-600 cursor-pointer hover:text-gray-400">●</span>
+            </template>
+          </div>
+        </div>
+
+        <!-- Generate button -->
+        <button @click="generateScript(selectedClue)"
+                :disabled="isGenerating"
+                class="btn-gold w-full py-2.5 rounded-xl text-sm mb-3 flex items-center justify-center gap-2"
+                :class="isGenerating ? 'opacity-70 cursor-not-allowed' : ''">
+          <svg x-show="!isGenerating" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          <svg x-show="isGenerating" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+          <span x-text="isGenerating ? 'AI生成中...' : '⚡ 生成本地化话术'"></span>
+        </button>
+
+        <!-- Script output -->
+        <div x-show="scriptText || isGenerating" class="card-inner p-4 mb-3">
+          <div class="text-xs text-gray-600 mb-2">📝 AI生成话术</div>
+          <div class="text-sm text-gray-300 leading-relaxed"
+               :class="isGenerating ? 'typewriter-cursor' : ''"
+               x-text="scriptText || (isGenerating ? '' : '')"></div>
+          <div x-show="scriptGenerated" class="flex items-center justify-between mt-3">
+            <span class="text-xs" :class="wordCount > 80 ? 'text-red-400' : 'text-gray-500'">
+              单词数: <strong x-text="wordCount"></strong>/80
+            </span>
+            <button @click="retryGenerate()" class="text-xs text-gray-500 hover:text-amber-400 transition-colors">↺ 重试</button>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div x-show="scriptGenerated" class="space-y-2">
+          <!-- Email -->
+          <a :href="generateMailto()" class="flex items-center gap-2 p-3 rounded-xl text-sm text-gray-300 hover:text-white transition-all"
+             style="background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.15)">
+            <span>📧</span>
+            <span>发送至业务员邮箱</span>
+          </a>
+          <!-- WeChat card -->
+          <button @click="showWechatCard = true" class="flex items-center gap-2 p-3 rounded-xl text-sm text-gray-300 hover:text-white transition-all w-full"
+                  style="background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.15)">
+            <span>💬</span>
+            <span>微信跟进卡 · 一键复制</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- INSIGHT TAB -->
+      <div x-show="aiTab === 'insight'">
+        <button @click="generateInsight(selectedClue)"
+                :disabled="isAnalyzing"
+                class="btn-gold w-full py-2.5 rounded-xl text-sm mb-4 flex items-center justify-center gap-2"
+                :class="isAnalyzing ? 'opacity-70 cursor-not-allowed' : ''">
+          <span x-text="isAnalyzing ? '深度分析中...' : '🧠 生成买家心理分析'"></span>
+        </button>
+
+        <div x-show="buyerInsight" class="space-y-3">
+          <!-- Real Intent -->
+          <div class="insight-gold p-4">
+            <div class="text-xs font-bold text-amber-400 mb-2">🎯 真实意图</div>
+            <div class="text-sm text-gray-300 leading-relaxed" x-text="buyerInsight?.intent"></div>
+          </div>
+          <!-- Negotiation Leverage -->
+          <div class="insight-green p-4">
+            <div class="text-xs font-bold text-green-400 mb-2">💪 谈判筹码</div>
+            <div class="text-sm text-gray-300 leading-relaxed" x-text="buyerInsight?.leverage"></div>
+          </div>
+          <!-- Follow-up Traps -->
+          <div class="insight-red p-4">
+            <div class="text-xs font-bold text-red-400 mb-2">⚠️ 跟进陷阱</div>
+            <div class="text-sm text-gray-300 leading-relaxed" x-text="buyerInsight?.traps"></div>
+          </div>
+        </div>
+
+        <div x-show="!buyerInsight && !isAnalyzing" class="text-center py-8 text-gray-600 text-sm">
+          点击上方按钮进行买家心理深度分析
+        </div>
+      </div>
+
+      <!-- VERSION HISTORY TAB -->
+      <div x-show="aiTab === 'versions'">
+        <div x-show="scriptVersions.length === 0" class="text-center py-8 text-gray-600 text-sm">
+          暂无历史版本记录
+        </div>
+        <div x-show="scriptVersions.length > 0">
+          <div class="space-y-2 mb-4">
+            <template x-for="(v, i) in scriptVersions" :key="v.id">
+              <div class="version-item" :class="selectedVersion?.id === v.id ? 'selected' : ''"
+                   @click="selectVersion(v)">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-white" x-text="'版本 v' + v.version"></span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-600" x-text="toneLabels[v.tone_level-1]"></span>
+                    <button @click.stop="restoreVersion(v)" class="text-xs gold hover:underline">恢复</button>
+                  </div>
+                </div>
+                <div class="text-xs text-gray-600 mt-1 line-clamp-1" x-text="v.content"></div>
+                <div class="text-xs text-gray-700 mt-0.5" x-text="formatTime(v.created_at)"></div>
+              </div>
+            </template>
+          </div>
+          <!-- Diff viewer -->
+          <div x-show="selectedVersion && scriptText" class="card-inner p-3">
+            <div class="text-xs text-gray-500 mb-2">版本对比 (当前 vs <span x-text="'v' + selectedVersion?.version"></span>)</div>
+            <div class="text-xs text-gray-400 leading-relaxed">
+              <div class="diff-removed mb-1" x-text="selectedVersion?.content"></div>
+              <div class="diff-added" x-text="scriptText"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- MOBILE BOTTOM TABS -->
+<div class="mobile-tabs fixed bottom-0 left-0 right-0 z-50" style="background:#0D1117;border-top:1px solid #1F2937;">
+  <div class="grid grid-cols-4">
+    <template x-for="(tab, i) in mobileTabs" :key="tab.id">
+      <button @click="activeMobileTab = tab.id"
+              class="flex flex-col items-center py-3 gap-1 transition-colors"
+              :class="activeMobileTab === tab.id ? 'text-amber-400' : 'text-gray-600'">
+        <span class="text-xl" x-text="tab.icon"></span>
+        <span class="text-xs" x-text="tab.label"></span>
+      </button>
+    </template>
+  </div>
+</div>
+
+<!-- Mobile panels -->
+<div class="hidden sm:hidden" id="mobile-content">
+  <div :class="activeMobileTab === 'hub' ? 'mobile-panel active' : 'mobile-panel'" class="p-4 pb-24">
+    <!-- Hub content same as left sidebar -->
+  </div>
+</div>
+
+<!-- Bottom Sheet (mobile AI delivery) -->
+<div class="bottom-sheet" :class="showBottomSheet ? '' : 'hidden'" x-show="showBottomSheet" style="display:none">
+  <div class="flex items-center justify-between mb-4">
+    <div class="text-sm font-bold text-white">AI话术交付台</div>
+    <button @click="showBottomSheet = false" class="text-gray-500 hover:text-white">✕</button>
+  </div>
+  <div class="text-sm text-gray-400" x-text="scriptText || '点击线索卡片生成话术'"></div>
+</div>
+
+<!-- RECHARGE MODAL -->
+<div x-show="showRecharge" class="modal-overlay" x-cloak @click.self="showRecharge = false">
+  <div class="modal-box">
+    <div class="text-center mb-5">
+      <div class="text-xl font-black text-white mb-1">💳 钱包充值</div>
+      <div class="text-sm text-gray-500">每条解密超出免费额度后 ¥0.5/次</div>
+    </div>
+    <div class="grid grid-cols-3 gap-3 mb-4">
+      <template x-for="amt in [10,30,50,100,200,500]" :key="amt">
+        <button @click="rechargeAmount = amt"
+                class="py-3 rounded-xl text-sm font-bold transition-all"
+                :class="rechargeAmount === amt ? 'btn-gold' : 'text-gray-300'"
+                :style="rechargeAmount !== amt ? 'border:1px solid #2D3748' : ''"
+                x-text="'¥' + amt">
+        </button>
+      </template>
+    </div>
+    <div class="flex gap-2 mb-4">
+      <input x-model.number="rechargeAmount" type="number" class="input-field" placeholder="自定义金额">
+    </div>
+    <button @click="createOrder()" class="btn-gold w-full py-3 rounded-xl text-sm">
+      生成支付宝二维码
+    </button>
+  </div>
+</div>
+
+<!-- QR CODE MODAL -->
+<div x-show="showQR" class="modal-overlay" x-cloak @click.self="showQR = false">
+  <div class="modal-box text-center">
+    <div class="text-lg font-black text-white mb-2">支付宝扫码付款</div>
+    <div class="text-sm text-gray-500 mb-4">订单号: <span class="text-amber-400 font-mono text-xs" x-text="currentOrder?.order_id"></span></div>
+    <!-- Fake QR code -->
+    <div class="w-48 h-48 mx-auto rounded-2xl flex items-center justify-center mb-4 relative overflow-hidden" style="background:#F0F0F0">
+      <svg viewBox="0 0 200 200" class="w-full h-full p-4">
+        <rect x="10" y="10" width="60" height="60" fill="none" stroke="#333" stroke-width="8"/>
+        <rect x="20" y="20" width="40" height="40" fill="#333"/>
+        <rect x="130" y="10" width="60" height="60" fill="none" stroke="#333" stroke-width="8"/>
+        <rect x="140" y="20" width="40" height="40" fill="#333"/>
+        <rect x="10" y="130" width="60" height="60" fill="none" stroke="#333" stroke-width="8"/>
+        <rect x="20" y="140" width="40" height="40" fill="#333"/>
+        <g fill="#333">
+          <rect x="85" y="10" width="10" height="10"/>
+          <rect x="100" y="10" width="10" height="10"/>
+          <rect x="80" y="25" width="10" height="10"/>
+          <rect x="95" y="40" width="10" height="10"/>
+          <rect x="80" y="55" width="10" height="10"/>
+          <rect x="85" y="85" width="10" height="10"/>
+          <rect x="100" y="100" width="10" height="10"/>
+          <rect x="115" y="85" width="10" height="10"/>
+          <rect x="130" y="100" width="10" height="10"/>
+          <rect x="140" y="85" width="10" height="10"/>
+          <rect x="155" y="100" width="10" height="10"/>
+          <rect x="130" y="115" width="10" height="10"/>
+          <rect x="150" y="130" width="10" height="10"/>
+        </g>
+      </svg>
+      <div class="absolute inset-0 flex items-center justify-center">
+        <div class="bg-white rounded-lg p-1.5">
+          <div class="w-8 h-8 rounded-md" style="background:linear-gradient(135deg,#1677FF,#4D9BFF)"></div>
+        </div>
+      </div>
+    </div>
+    <div class="text-xl font-black text-amber-400 mb-4" x-text="'¥' + (currentOrder?.amount || 0)"></div>
+    <div class="text-xs text-gray-500 mb-4">请在 15 分钟内完成支付</div>
+    <button @click="confirmPayment()" class="btn-gold w-full py-3 rounded-xl text-sm">✅ 我已支付</button>
+    <button @click="showQR = false; showRecharge = true" class="mt-2 text-sm text-gray-500 hover:text-white w-full py-2 transition-colors">← 返回</button>
+  </div>
+</div>
+
+<!-- WECHAT CARD MODAL -->
+<div x-show="showWechatCard" class="modal-overlay" x-cloak @click.self="showWechatCard = false">
+  <div class="modal-box">
+    <div class="text-sm font-bold text-white mb-4">💬 微信跟进卡 · 一键复制</div>
+    <div class="p-4 rounded-2xl mb-4" style="background:#ECE5DD;">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-lg gold-bg flex items-center justify-center text-sm font-bold text-gray-900 flex-shrink-0">AI</div>
+        <div class="wechat-bubble" x-text="scriptText">
+        </div>
+      </div>
+    </div>
+    <button @click="copyScript()" class="btn-gold w-full py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+      <span>📋</span>
+      <span x-text="copied ? '✅ 已复制到剪贴板！' : '一键复制全文'"></span>
+    </button>
+  </div>
+</div>
+
+<!-- DECRYPT CONFIRM MODAL -->
+<div x-show="showDecryptModal" class="modal-overlay" x-cloak>
+  <div class="modal-box">
+    <div class="text-center">
+      <div class="text-3xl mb-3">🔓</div>
+      <div class="text-lg font-black text-white mb-2">确认解密此线索？</div>
+      <div class="text-sm text-gray-400 mb-4" x-text="decryptTarget?.title"></div>
+      <div class="p-3 rounded-xl mb-5" :class="credits.dailyFree >= 5 ? 'insight-red' : 'insight-green'">
+        <div class="text-sm font-semibold" :class="credits.dailyFree >= 5 ? 'text-red-400' : 'text-green-400'">
+          <span x-show="credits.dailyFree < 5">🎁 免费额度 (今日剩余 <strong x-text="5 - credits.dailyFree"></strong> 次)</span>
+          <span x-show="credits.dailyFree >= 5">💳 将扣除 ¥0.5，余额 <strong x-text="'¥' + credits.balance.toFixed(2)"></strong></span>
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <button @click="showDecryptModal = false" class="flex-1 py-3 rounded-xl text-sm text-gray-400 hover:text-white transition-colors" style="border:1px solid #2D3748">取消</button>
+        <button @click="confirmDecrypt()" class="flex-1 btn-gold py-3 rounded-xl text-sm">确认解密</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Mock seed data (60条线索子集，用于演示)
+const MOCK_CLUES = [
+  { id:'c001', community:'Reddit', author:'Mike_Tennessee', author_masked:'M***e', avatar_url:'https://i.pravatar.cc/150?img=1', title:'Looking for riding lawn mower manufacturer from China - urgent order', excerpt:'We need 500 units of riding lawn mowers for Spring season. EPA and CARB certification mandatory. Los Angeles port preferred.', country:'United States', country_flag:'🇺🇸', keyword_tags:['割草机','lawn mower','EPA'], budget_range:'$175,000-$225,000', moq:'500 units', certification_required:'EPA, CARB', match_score:97, created_at: new Date(Date.now()-300000).toISOString(), decrypted:false, isNew:false },
+  { id:'c002', community:'Facebook', author:'Hans_Mueller', author_masked:'H***s', avatar_url:'https://i.pravatar.cc/150?img=2', title:'Rasenmäher Großhandel gesucht - CE Zertifizierung erforderlich', excerpt:'Wir suchen einen chinesischen Hersteller für Rasenmäher mit CE-Zertifizierung für den deutschen Markt. MOQ 200 Stück.', country:'Germany', country_flag:'🇩🇪', keyword_tags:['割草机','Rasenmäher','CE'], budget_range:'€36,000-€50,000', moq:'200 units', certification_required:'CE, GS', match_score:95, created_at: new Date(Date.now()-600000).toISOString(), decrypted:false, isNew:false },
+  { id:'c003', community:'LinkedIn', author:'James_Calgary', author_masked:'J***s', avatar_url:'https://i.pravatar.cc/150?img=3', title:'Lawn mower supplier wanted - Canada market - CSA certified only', excerpt:'Canadian distributor seeking OEM lawn mower manufacturer. Must have CSA certification. 300 units MOQ. Vancouver port preferred.', country:'Canada', country_flag:'🇨🇦', keyword_tags:['lawn mower','CSA','OEM'], budget_range:'CAD $84,000-$114,000', moq:'300 units', certification_required:'CSA', match_score:94, created_at: new Date(Date.now()-900000).toISOString(), decrypted:false, isNew:false },
+  { id:'c004', community:'Reddit', author:'AussieGardenPro', author_masked:'A***o', avatar_url:'https://i.pravatar.cc/150?img=4', title:'Need Australian standard lawn mower from China - Bunnings opportunity', excerpt:'Large order for Australian retail chain. SAA/RCM certification required. Sydney or Melbourne port. Budget AUD 300-450/unit.', country:'Australia', country_flag:'🇦🇺', keyword_tags:['lawn mower','SAA','RCM'], budget_range:'AUD $120,000-$180,000', moq:'400 units', certification_required:'SAA, RCM', match_score:93, created_at: new Date(Date.now()-1200000).toISOString(), decrypted:false, isNew:false },
+  { id:'c005', community:'Facebook', author:'GardenKing_UK', author_masked:'G***g', avatar_url:'https://i.pravatar.cc/150?img=5', title:'UK lawn mower importer seeking Chinese factory partner - UKCA certified', excerpt:'We import garden machinery to UK. Post-Brexit UKCA certification required. MOQ 250 units. Felixstowe port.', country:'United Kingdom', country_flag:'🇬🇧', keyword_tags:['lawn mower','UKCA','UK import'], budget_range:'GBP £30,000-£45,000', moq:'250 units', certification_required:'UKCA, RoHS', match_score:92, created_at: new Date(Date.now()-1500000).toISOString(), decrypted:false, isNew:false },
+  { id:'c006', community:'LinkedIn', author:'Carlos_Guadalajara', author_masked:'C***s', avatar_url:'https://i.pravatar.cc/150?img=6', title:'Búsqueda urgente: cortadoras de césped para México - NOM certificación', excerpt:'Empresa mexicana busca fabricante chino de cortadoras de césped con certificación NOM-016. Pedido mínimo 200 unidades.', country:'Mexico', country_flag:'🇲🇽', keyword_tags:['割草机','lawn mower','NOM'], budget_range:'$36,000-$52,000', moq:'200 units', certification_required:'NOM-016', match_score:90, created_at: new Date(Date.now()-1800000).toISOString(), decrypted:false, isNew:false },
+  { id:'c007', community:'Reddit', author:'Dubai_Outdoor', author_masked:'D***i', avatar_url:'https://i.pravatar.cc/150?img=7', title:'UAE landscaping company needs electric lawn mowers - ESMA approved', excerpt:'Dubai-based landscaping firm seeking 150+ electric lawn mowers. ESMA certification required. Port of Jebel Ali.', country:'UAE', country_flag:'🇦🇪', keyword_tags:['lawn mower','ESMA','electric'], budget_range:'$30,000-$45,000', moq:'150 units', certification_required:'ESMA', match_score:91, created_at: new Date(Date.now()-2100000).toISOString(), decrypted:false, isNew:false },
+  { id:'c008', community:'LinkedIn', author:'EV_Charger_Germany', author_masked:'E***y', avatar_url:'https://i.pravatar.cc/150?img=10', title:'EV charging station supplier for European market - TÜV certified', excerpt:'German EV infrastructure company seeking Chinese OEM for 7kW and 22kW AC chargers. CE, TÜV certification. OCPP 1.6+.', country:'Germany', country_flag:'🇩🇪', keyword_tags:['EV charger','充电桩','TÜV'], budget_range:'€90,000-€140,000', moq:'500 units', certification_required:'CE, TÜV', match_score:94, created_at: new Date(Date.now()-2400000).toISOString(), decrypted:false, isNew:false },
+  { id:'c009', community:'Reddit', author:'SolarBuyer_Texas', author_masked:'S***s', avatar_url:'https://i.pravatar.cc/150?img=9', title:'Wholesale solar panels needed - 500kW project - UL certification required', excerpt:'Texas energy company seeking solar panel supplier for 500kW installation. UL, MCS certification. Price under $0.28/W.', country:'United States', country_flag:'🇺🇸', keyword_tags:['solar panel','太阳能板','UL'], budget_range:'$350,000+', moq:'1,250 panels', certification_required:'UL, IEC 61215', match_score:92, created_at: new Date(Date.now()-2700000).toISOString(), decrypted:false, isNew:false },
+  { id:'c010', community:'LinkedIn', author:'Medical_Device_UK', author_masked:'M***l', avatar_url:'https://i.pravatar.cc/150?img=13', title:'UK medical device importer seeking pulse oximeters - CE MDR certified', excerpt:'NHS supplier looking for pulse oximeters and blood pressure monitors. CE MDR 2017/745 certification mandatory.', country:'United Kingdom', country_flag:'🇬🇧', keyword_tags:['medical device','CE MDR','pulse oximeter'], budget_range:'£205,000-£295,000', moq:'15,000 units', certification_required:'CE MDR, MHRA', match_score:96, created_at: new Date(Date.now()-3000000).toISOString(), decrypted:false, isNew:false },
+  { id:'c011', community:'Facebook', author:'Telecom_Kenya', author_masked:'T***m', avatar_url:'https://i.pravatar.cc/150?img=42', title:'Kenyan telecom company needs fiber optic cables and network equipment', excerpt:'Nairobi telecom needs 5000km fiber optic cable and 200 OLT units. KEBS approved. EAC compliant.', country:'Kenya', country_flag:'🇰🇪', keyword_tags:['fiber optic','光纤','GPON'], budget_range:'$1,500,000-$2,500,000', moq:'Large project', certification_required:'ITU-T, KEBS', match_score:89, created_at: new Date(Date.now()-3600000).toISOString(), decrypted:false, isNew:false },
+  { id:'c012', community:'LinkedIn', author:'Pharma_India', author_masked:'P***a', avatar_url:'https://i.pravatar.cc/150?img=19', title:'Indian pharma company needs Metformin API - GMP certified factory', excerpt:'Mumbai pharma company seeking Chinese API supplier. Metformin HCl 500MT/year. US FDA approved factory preferred.', country:'India', country_flag:'🇮🇳', keyword_tags:['API','pharmaceutical','GMP','Metformin'], budget_range:'$2,500,000+/year', moq:'500 MT/year', certification_required:'GMP, US FDA', match_score:95, created_at: new Date(Date.now()-4200000).toISOString(), decrypted:false, isNew:false },
+];
+
+const AI_SCRIPTS = {
+  1: "Dear {name}, I am reaching out regarding your procurement inquiry. Our company specializes in manufacturing {product} with relevant certifications. We would be honored to discuss your specific requirements. Please find our catalog attached. We look forward to establishing a mutually beneficial business relationship.",
+  2: "Hi {name}! Just saw your post about {product} — great timing! We manufacture exactly what you need, fully certified. Our factory in China has 15 years experience, CE/EPA certified, can ship to your port. MOQ flexible, price competitive. Can we hop on a quick call? Happy to send samples first.",
+  3: "Hey {name}! Your {product} inquiry caught our eye 👀 We've been making these for 15 years and our gear is legit — CE/EPA/CSA whatever you need. Numbers work out great at your volume. Drop me a message and let's figure this out. Free samples, no strings attached. What do you say? 🤝",
+  4: "Yo {name}! Saw you're hunting for {product} — we got you! Our factory is basically THE place for this. Been doing it since forever, got all the certs you need. DM me, we'll sort the deets and get you sorted mate. Samples on us to kick things off. Don't sleep on this! 🔥"
+};
+
+function dashboard() {
+  return {
+    // State
+    keywords: JSON.parse(localStorage.getItem('radar_keywords') || '["割草机"]'),
+    newKeyword: '',
+    clues: [...MOCK_CLUES],
+    pendingQueue: [],
+    pendingCount: 0,
+    selectedClue: null,
+    searchQuery: '',
+    activeFilters: [],
+    filterOpen: false,
+    filterOptions: ['高分(90+)', '美国', '欧洲', '中东', '已解密', '未解密'],
+    // KB
+    kb: {
+      advantagesOpen: false, faqOpen: false, ctaOpen: false,
+      advantages: '', faq: '', whatsapp: '', email: 'sales@yourcompany.com'
+    },
+    // KPI
+    kpi: { communities: 127, todayNew: 8, monthDecrypt: 42, monthCost: 18.5, totalDecrypt: 234 },
+    // Credits
+    credits: { dailyFree: 2, balance: 45.00 },
+    // AI
+    aiTab: 'script',
+    toneLevel: 2,
+    toneLabels: ['商务严谨', '专业友好', '轻松活泼', '原生俚语'],
+    toneChips: ['①', '②', '③', '④'],
+    isGenerating: false,
+    scriptText: '',
+    scriptGenerated: false,
+    wordCount: 0,
+    retryCount: 0,
+    isAnalyzing: false,
+    buyerInsight: null,
+    scriptVersions: [],
+    selectedVersion: null,
+    // Modals
+    showRecharge: false,
+    showQR: false,
+    showDecryptModal: false,
+    showBottomSheet: false,
+    showWechatCard: false,
+    showProfile: false,
+    // Payment
+    rechargeAmount: 30,
+    currentOrder: null,
+    decryptTarget: null,
+    // Mobile
+    activeMobileTab: 'feed',
+    mobileTabs: [
+      { id:'hub', icon:'🎯', label:'控制中心' },
+      { id:'feed', icon:'📡', label:'线索流' },
+      { id:'ai', icon:'🤖', label:'AI交付' },
+      { id:'mine', icon:'👤', label:'我的' },
+    ],
+    copied: false,
+
+    get filteredClues() {
+      let result = this.clues;
+      if (this.searchQuery) {
+        const q = this.searchQuery.toLowerCase();
+        result = result.filter(c =>
+          c.title.toLowerCase().includes(q) ||
+          c.author.toLowerCase().includes(q) ||
+          c.country.toLowerCase().includes(q) ||
+          (c.keyword_tags || []).some(t => t.toLowerCase().includes(q)) ||
+          c.community.toLowerCase().includes(q)
+        );
+      }
+      if (this.activeFilters.includes('高分(90+)')) result = result.filter(c => c.match_score >= 90);
+      if (this.activeFilters.includes('美国')) result = result.filter(c => c.country === 'United States');
+      if (this.activeFilters.includes('欧洲')) result = result.filter(c => ['Germany','United Kingdom','France','Italy','Spain','Netherlands','Poland','Sweden','Austria','Denmark','Belgium'].includes(c.country));
+      if (this.activeFilters.includes('中东')) result = result.filter(c => ['UAE','Saudi Arabia','Egypt'].includes(c.country));
+      if (this.activeFilters.includes('已解密')) result = result.filter(c => c.decrypted);
+      if (this.activeFilters.includes('未解密')) result = result.filter(c => !c.decrypted);
+      return result;
+    },
+
+    init() {
+      // Simulate real-time new clues every 18s
+      setInterval(() => {
+        const newClue = {
+          id: 'new_' + Date.now(),
+          community: ['Reddit', 'Facebook', 'LinkedIn'][Math.floor(Math.random()*3)],
+          author: 'Buyer_' + Math.random().toString(36).substr(2, 6),
+          author_masked: 'B***r',
+          avatar_url: 'https://i.pravatar.cc/150?img=' + Math.floor(Math.random()*70),
+          title: 'New procurement inquiry - ' + ['solar panels', 'LED lights', 'machinery', 'electronics'][Math.floor(Math.random()*4)],
+          excerpt: 'Looking for reliable Chinese supplier with certifications. MOQ negotiable. Competitive pricing required.',
+          country: ['United States','Germany','Canada','Australia','UK','UAE'][Math.floor(Math.random()*6)],
+          country_flag: ['🇺🇸','🇩🇪','🇨🇦','🇦🇺','🇬🇧','🇦🇪'][Math.floor(Math.random()*6)],
+          keyword_tags: this.keywords.slice(0,2),
+          budget_range: '$' + (Math.floor(Math.random()*100)+20) + ',000+',
+          moq: (Math.floor(Math.random()*500)+100) + ' units',
+          match_score: Math.floor(Math.random()*20)+75,
+          created_at: new Date().toISOString(),
+          decrypted: false, isNew: true
+        };
+        this.pendingQueue.push(newClue);
+        this.pendingCount++;
+        this.kpi.todayNew++;
+      }, 18000);
+
+      // KPI ticker
+      setInterval(() => {
+        this.kpi.communities += Math.random() > 0.7 ? 1 : 0;
+      }, 5000);
+    },
+
+    addKeyword() {
+      const kw = this.newKeyword.trim();
+      if (kw && !this.keywords.includes(kw)) {
+        this.keywords.push(kw);
+        localStorage.setItem('radar_keywords', JSON.stringify(this.keywords));
+      }
+      this.newKeyword = '';
+    },
+
+    removeKeyword(i) {
+      this.keywords.splice(i, 1);
+      localStorage.setItem('radar_keywords', JSON.stringify(this.keywords));
+    },
+
+    launchRadar() {
+      if (this.keywords.length === 0) { alert('请先添加关键词'); return; }
+      localStorage.setItem('radar_keywords', JSON.stringify(this.keywords));
+      // Flash effect
+      document.querySelector('.clue-card')?.classList.add('new-pulse');
+      setTimeout(() => document.querySelector('.clue-card')?.classList.remove('new-pulse'), 2200);
+    },
+
+    flushPending() {
+      const newClues = this.pendingQueue.splice(0, this.pendingCount);
+      this.clues.unshift(...newClues.map(c => ({...c, isNew: true})));
+      this.pendingCount = 0;
+      // Remove new flag after 2.2s
+      setTimeout(() => {
+        this.clues.forEach(c => c.isNew = false);
+      }, 2200);
+    },
+
+    toggleFilter(f) {
+      const idx = this.activeFilters.indexOf(f);
+      if (idx >= 0) this.activeFilters.splice(idx, 1);
+      else this.activeFilters.push(f);
+    },
+
+    selectClue(clue) {
+      this.selectedClue = clue;
+      this.scriptText = '';
+      this.scriptGenerated = false;
+      this.buyerInsight = null;
+      this.aiTab = 'script';
+      // Load versions for this clue
+      this.scriptVersions = JSON.parse(localStorage.getItem('versions_' + clue.id) || '[]');
+    },
+
+    decryptClue(clue) {
+      this.decryptTarget = clue;
+      this.showDecryptModal = true;
+    },
+
+    confirmDecrypt() {
+      const clue = this.decryptTarget;
+      if (this.credits.dailyFree < 5) {
+        this.credits.dailyFree++;
+        this.kpi.monthDecrypt++;
+      } else {
+        if (this.credits.balance < 0.5) {
+          this.showDecryptModal = false;
+          this.showRecharge = true;
+          return;
+        }
+        this.credits.balance -= 0.5;
+        this.kpi.monthCost += 0.5;
+        this.kpi.monthDecrypt++;
+        this.kpi.totalDecrypt++;
+      }
+      // Reveal clue
+      const idx = this.clues.findIndex(c => c.id === clue.id);
+      if (idx >= 0) {
+        this.clues[idx].decrypted = true;
+        this.clues[idx].author = clue.author;
+        this.clues[idx].url = 'https://example.com/posts/' + clue.id;
+      }
+      this.showDecryptModal = false;
+      // Auto-select and generate
+      this.selectClue(this.clues[idx]);
+      this.generateScript(this.clues[idx]);
+    },
+
+    async generateScript(clue) {
+      if (!clue) return;
+      this.isGenerating = true;
+      this.scriptText = '';
+      this.scriptGenerated = false;
+      this.retryCount = 0;
+
+      const attempt = async () => {
+        try {
+          const template = AI_SCRIPTS[this.toneLevel];
+          const product = (clue.keyword_tags && clue.keyword_tags[0]) || 'your product';
+          const name = clue.decrypted ? clue.author.split('_')[0] : 'there';
+          const fullScript = template.replace(/{name}/g, name).replace(/{product}/g, product);
+
+          // Simulate streaming
+          const words = fullScript.split(' ');
+          for (let i = 0; i < words.length; i++) {
+            if (!this.isGenerating) break;
+            await new Promise(r => setTimeout(r, 60 + Math.random() * 40));
+            this.scriptText = words.slice(0, i+1).join(' ');
+            this.wordCount = i + 1;
+          }
+          this.scriptGenerated = true;
+          this.isGenerating = false;
+
+          // Save version
+          const version = {
+            id: 'v_' + Date.now(),
+            clue_id: clue.id,
+            version: this.scriptVersions.length + 1,
+            content: this.scriptText,
+            tone_level: this.toneLevel,
+            created_at: new Date().toISOString()
+          };
+          this.scriptVersions.unshift(version);
+          localStorage.setItem('versions_' + clue.id, JSON.stringify(this.scriptVersions.slice(0,10)));
+
+        } catch(e) {
+          if (this.retryCount < 3) {
+            this.retryCount++;
+            await attempt();
+          } else {
+            this.isGenerating = false;
+            this.scriptText = '生成失败，请点击重试';
+          }
+        }
+      };
+
+      await attempt();
+    },
+
+    retryGenerate() {
+      this.scriptText = '';
+      this.scriptGenerated = false;
+      this.generateScript(this.selectedClue);
+    },
+
+    async generateInsight(clue) {
+      this.isAnalyzing = true;
+      await new Promise(r => setTimeout(r, 1500));
+      const product = (clue.keyword_tags && clue.keyword_tags[0]) || 'product';
+      this.buyerInsight = {
+        intent: `该买家来自${clue.country}，发布于${clue.community}，真实意图是寻找长期稳定的${product}供应商，当前处于比价阶段，意向度较高（${clue.match_score}分）。MOQ要求（${clue.moq || '待确认'}）显示项目规模较大。`,
+        leverage: `您的核心筹码：1) 交货期优势（国内工厂30天内可出货），2) 认证齐全（${clue.certification_required || 'CE/EPA等'}已覆盖），3) 价格比竞对低15-25%，4) 可提供免费样品降低买家风险。重点强调工厂实力和售后服务。`,
+        traps: `⚠️ 警惕：1) 对方可能同时询价5-10家，不要急于降价，2) 初次询价通常要求样品，别急着全免费，3) 付款方式需坚持30%定金，4) 认证文件需最新版本，避免交货时被拒。跟进频率建议：3天1次，共跟进3轮再评估。`
+      };
+      this.isAnalyzing = false;
+    },
+
+    selectVersion(v) {
+      this.selectedVersion = v;
+    },
+
+    restoreVersion(v) {
+      this.scriptText = v.content;
+      this.toneLevel = v.tone_level;
+      this.scriptGenerated = true;
+      this.wordCount = v.content.split(' ').length;
+      this.aiTab = 'script';
+    },
+
+    generateMailto() {
+      if (!this.selectedClue) return '#';
+      const subject = encodeURIComponent('Re: ' + this.selectedClue.title);
+      const body = encodeURIComponent(this.scriptText + '\n\n--\n' + (this.kb.email || 'sales@yourcompany.com'));
+      const to = this.kb.email || '';
+      return `mailto:${to}?subject=${subject}&body=${body}`;
+    },
+
+    async copyScript() {
+      try {
+        await navigator.clipboard.writeText(this.scriptText);
+        this.copied = true;
+        setTimeout(() => this.copied = false, 2000);
+      } catch(e) {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = this.scriptText;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        this.copied = true;
+        setTimeout(() => this.copied = false, 2000);
+      }
+    },
+
+    startPress(el, clue, data) {
+      const isMobile = window.innerWidth < 768;
+      if (!isMobile) {
+        this.selectClue(clue);
+        return;
+      }
+      data.pressProgress = 0;
+      const bar = el.querySelector('.long-press-bar');
+      const start = Date.now();
+      data.pressTimer = setInterval(() => {
+        const elapsed = Date.now() - start;
+        data.pressProgress = Math.min((elapsed / 1500) * 100, 100);
+        if (bar) bar.style.width = data.pressProgress + '%';
+        if (elapsed >= 1500) {
+          clearInterval(data.pressTimer);
+          data.pressProgress = 100;
+          this.decryptClue(clue);
+        }
+      }, 50);
+    },
+
+    cancelPress(data) {
+      if (data.pressTimer) {
+        clearInterval(data.pressTimer);
+        data.pressTimer = null;
+        data.pressProgress = 0;
+      }
+    },
+
+    async createOrder() {
+      if (this.rechargeAmount < 10) { alert('最低充值 ¥10'); return; }
+      this.currentOrder = {
+        order_id: 'ORD-' + Date.now().toString(36).toUpperCase(),
+        amount: this.rechargeAmount
+      };
+      this.showRecharge = false;
+      this.showQR = true;
+    },
+
+    confirmPayment() {
+      this.credits.balance += this.currentOrder.amount;
+      this.showQR = false;
+      this.currentOrder = null;
+    },
+
+    formatTime(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      const now = new Date();
+      const diff = (now - d) / 1000;
+      if (diff < 60) return '刚刚';
+      if (diff < 3600) return Math.floor(diff/60) + '分钟前';
+      if (diff < 86400) return Math.floor(diff/3600) + '小时前';
+      return Math.floor(diff/86400) + '天前';
+    }
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>出海雷达 AI - GlobalRadar AI | 为出海商家提供有效采购线索</title>
+  <meta name="description" content="AI驱动的全球采购线索平台，实时扫描海外买家需求，精准匹配，助力中国制造商高效出海。">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0B0F19;
+      color: #E2E8F0;
+      overflow-x: hidden;
+    }
+    .gold { color: #F59E0B; }
+    .gold-bg { background: #F59E0B; }
+    .gold-border { border-color: #F59E0B; }
+    .btn-gold {
+      background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+      color: #0B0F19;
+      font-weight: 700;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 24px rgba(245,158,11,0.35);
+    }
+    .btn-gold:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(245,158,11,0.5);
+    }
+    .btn-outline {
+      border: 1px solid rgba(245,158,11,0.4);
+      color: #F59E0B;
+      background: transparent;
+      transition: all 0.2s ease;
+    }
+    .btn-outline:hover {
+      background: rgba(245,158,11,0.1);
+      border-color: #F59E0B;
+    }
+    .card-glass {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(20px);
+    }
+    .card-dark {
+      background: #111827;
+      border: 1px solid #1F2937;
+    }
+    .gradient-gold {
+      background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 50%, #F59E0B 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .gradient-hero {
+      background: radial-gradient(ellipse at top center, rgba(245,158,11,0.12) 0%, transparent 60%),
+                  radial-gradient(ellipse at bottom right, rgba(99,102,241,0.08) 0%, transparent 50%);
+    }
+    .scan-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(245,158,11,0.15);
+      animation: scan-pulse 4s ease-in-out infinite;
+    }
+    @keyframes scan-pulse {
+      0%, 100% { opacity: 0.15; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.05); }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-12px); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeInUp 0.6s ease-out forwards; opacity: 0; }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+    .delay-5 { animation-delay: 0.5s; }
+    .float-anim { animation: float 6s ease-in-out infinite; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0B0F19; }
+    ::-webkit-scrollbar-thumb { background: rgba(245,158,11,0.3); border-radius: 2px; }
+    .nav-blur {
+      background: rgba(11,15,25,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .feature-icon {
+      width: 48px; height: 48px;
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.02) 100%);
+      border: 1px solid rgba(245,158,11,0.15);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .pricing-card {
+      background: #111827;
+      border: 1px solid #1F2937;
+      border-radius: 20px;
+      transition: all 0.3s ease;
+    }
+    .pricing-card:hover {
+      border-color: rgba(245,158,11,0.3);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .pricing-card.featured {
+      background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(245,158,11,0.02) 100%);
+      border-color: rgba(245,158,11,0.4);
+      position: relative;
+    }
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-box {
+      background: #111827;
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 24px;
+      padding: 40px;
+      width: 100%; max-width: 480px;
+      animation: fadeInUp 0.3s ease-out;
+    }
+    .input-field {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 12px 16px;
+      color: #E2E8F0;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-field:focus { border-color: #F59E0B; }
+    .input-field::placeholder { color: #6B7280; }
+    .tab-active {
+      background: rgba(245,158,11,0.15);
+      border-bottom: 2px solid #F59E0B;
+      color: #F59E0B;
+    }
+  </style>
+</head>
+<body x-data="app()" x-init="init()">
+
+<!-- NAVIGATION -->
+<nav class="fixed top-0 left-0 right-0 z-50 nav-blur">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg gold-bg flex items-center justify-center">
+          <svg class="w-5 h-5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="2" fill="currentColor"/>
+            <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.7"/>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1" fill="none" opacity="0.4"/>
+          </svg>
+        </div>
+        <span class="text-lg font-bold text-white">出海雷达 <span class="gold text-sm font-medium">AI</span></span>
+      </div>
+
+      <div class="hidden md:flex items-center gap-8 text-sm text-gray-400">
+        <a href="#features" class="hover:text-white transition-colors">功能</a>
+        <a href="#how-it-works" class="hover:text-white transition-colors">工作原理</a>
+        <a href="#pricing" class="hover:text-white transition-colors">价格</a>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button @click="showLogin = true" class="hidden sm:block text-sm text-gray-400 hover:text-white transition-colors px-4 py-2">登录</button>
+        <button @click="showRegister = true" class="btn-gold px-4 py-2 rounded-lg text-sm">免费试用</button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="relative min-h-screen flex items-center justify-center pt-16 gradient-hero overflow-hidden">
+  <!-- Radar rings background -->
+  <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+    <div class="scan-ring w-[400px] h-[400px]" style="animation-delay:0s"></div>
+    <div class="scan-ring w-[600px] h-[600px]" style="animation-delay:0.8s"></div>
+    <div class="scan-ring w-[800px] h-[800px]" style="animation-delay:1.6s"></div>
+    <div class="scan-ring w-[1000px] h-[1000px]" style="animation-delay:2.4s"></div>
+    <!-- Center dot -->
+    <div class="absolute w-3 h-3 rounded-full bg-amber-400 shadow-lg" style="box-shadow: 0 0 20px rgba(245,158,11,0.8)"></div>
+    <!-- Scan line -->
+    <div class="absolute w-[500px] h-[1px] origin-left" style="background: linear-gradient(90deg, rgba(245,158,11,0.8), transparent); animation: spin 8s linear infinite;">
+    </div>
+  </div>
+
+  <style>
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  </style>
+
+  <div class="relative z-10 max-w-5xl mx-auto px-4 text-center">
+    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 fade-up" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2);">
+      <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+      <span class="text-sm text-amber-300 font-medium">实时扫描全球采购信息 · AI精准匹配</span>
+    </div>
+
+    <h1 class="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight mb-6 fade-up delay-1">
+      <span class="text-white">出海商机</span>
+      <br>
+      <span class="gradient-gold">精准雷达</span>
+    </h1>
+
+    <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed fade-up delay-2">
+      AI实时扫描 Facebook、Reddit、LinkedIn 等平台，<br>
+      为出海商家精准匹配<strong class="text-amber-400">高意向海外买家</strong>采购线索
+    </p>
+
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 fade-up delay-3">
+      <button @click="showRegister = true" class="btn-gold px-8 py-4 rounded-xl text-base w-full sm:w-auto">
+        🚀 免费开始使用 · 每日5次
+      </button>
+      <a href="pages/dashboard.html" class="btn-outline px-8 py-4 rounded-xl text-base w-full sm:w-auto text-center">
+        查看演示仪表盘 →
+      </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-3 gap-4 max-w-2xl mx-auto fade-up delay-4">
+      <div class="stat-card text-center">
+        <div class="text-3xl font-black gradient-gold" x-text="stats.leads.toLocaleString()">12,847</div>
+        <div class="text-xs text-gray-500 mt-1">活跃采购线索</div>
+      </div>
+      <div class="stat-card text-center">
+        <div class="text-3xl font-black gradient-gold">96.3%</div>
+        <div class="text-xs text-gray-500 mt-1">线索有效率</div>
+      </div>
+      <div class="stat-card text-center">
+        <div class="text-3xl font-black gradient-gold" x-text="stats.merchants.toLocaleString()">2,100+</div>
+        <div class="text-xs text-gray-500 mt-1">服务商家</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating cards -->
+  <div class="hidden lg:block absolute left-8 top-1/3 float-anim" style="animation-delay:0s">
+    <div class="card-dark rounded-xl p-3 w-56 shadow-2xl">
+      <div class="flex items-start gap-2">
+        <div class="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center text-xs font-bold text-gray-900 flex-shrink-0">M</div>
+        <div>
+          <div class="text-xs font-semibold text-white">Mike_Tennessee</div>
+          <div class="text-xs text-gray-500">美国 · 草坪设备</div>
+          <div class="text-xs text-amber-400 mt-1 font-medium">🔥 高匹配 97分</div>
+        </div>
+      </div>
+      <div class="mt-2 text-xs text-gray-400 blur-sm select-none">需要500台割草机，EPA认证，$450/台...</div>
+    </div>
+  </div>
+
+  <div class="hidden lg:block absolute right-8 top-1/4 float-anim" style="animation-delay:2s">
+    <div class="card-dark rounded-xl p-3 w-56 shadow-2xl">
+      <div class="flex items-start gap-2">
+        <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">H</div>
+        <div>
+          <div class="text-xs font-semibold text-white">Hans_Mueller</div>
+          <div class="text-xs text-gray-500">德国 · 园林机械</div>
+          <div class="text-xs text-amber-400 mt-1 font-medium">💎 高价值 95分</div>
+        </div>
+      </div>
+      <div class="mt-2 text-xs text-gray-400 blur-sm select-none">CE认证割草机，200台起订，汉堡港...</div>
+    </div>
+  </div>
+
+  <div class="hidden lg:block absolute right-12 bottom-1/4 float-anim" style="animation-delay:4s">
+    <div class="card-dark rounded-xl p-3 w-48 shadow-2xl">
+      <div class="flex items-center gap-2">
+        <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+        <span class="text-xs text-green-400 font-medium">刚刚解密成功</span>
+      </div>
+      <div class="text-xs text-gray-400 mt-1">已生成AI开发信 ✓</div>
+      <div class="text-xs text-amber-400 mt-1">省 ¥0 · 免费额度</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="py-24 sm:py-32">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <div class="text-sm gold font-semibold tracking-widest uppercase mb-3">核心功能</div>
+      <h2 class="text-4xl sm:text-5xl font-black text-white mb-4">全链路出海采购情报</h2>
+      <p class="text-gray-400 max-w-xl mx-auto">从线索发现到成交跟进，AI全程赋能</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <template x-for="f in features" :key="f.title">
+        <div class="card-dark rounded-2xl p-6 hover:border-amber-500/30 transition-all duration-300 group"
+             style="border: 1px solid #1F2937;">
+          <div class="feature-icon mb-5 group-hover:scale-110 transition-transform">
+            <span class="text-2xl" x-text="f.icon"></span>
+          </div>
+          <h3 class="text-lg font-bold text-white mb-2" x-text="f.title"></h3>
+          <p class="text-sm text-gray-500 leading-relaxed" x-text="f.desc"></p>
+        </div>
+      </template>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works" class="py-24 sm:py-32" style="background: #0D1117;">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl sm:text-5xl font-black text-white mb-4">三步开启出海之旅</h2>
+    </div>
+    <div class="relative">
+      <div class="hidden md:block absolute top-8 left-[calc(16.67%+24px)] right-[calc(16.67%+24px)] h-px bg-gradient-to-r from-amber-500/0 via-amber-500/30 to-amber-500/0"></div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <template x-for="(step, i) in steps" :key="i">
+          <div class="text-center group">
+            <div class="w-16 h-16 rounded-2xl btn-gold flex items-center justify-center text-xl font-black mx-auto mb-5 group-hover:scale-110 transition-transform">
+              <span x-text="i + 1"></span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2" x-text="step.title"></h3>
+            <p class="text-sm text-gray-500 leading-relaxed" x-text="step.desc"></p>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO PREVIEW -->
+<section class="py-16 overflow-hidden">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl sm:text-4xl font-black text-white mb-3">产品截图预览</h2>
+      <p class="text-gray-400">黑金科技风 · 三栏专业布局 · 极致细节</p>
+    </div>
+    <div class="card-glass rounded-2xl p-4 sm:p-6 overflow-auto">
+      <!-- Mini dashboard preview -->
+      <div class="flex gap-3 min-w-[800px]">
+        <!-- Left -->
+        <div class="w-1/4 bg-gray-900 rounded-xl p-3">
+          <div class="text-xs text-amber-400 font-semibold mb-3">🎯 控制中心</div>
+          <div class="bg-gray-800 rounded-lg p-2 mb-2">
+            <div class="text-xs text-gray-500 mb-1">搜索关键词</div>
+            <div class="text-xs text-white bg-amber-500/10 border border-amber-500/30 px-2 py-1 rounded">割草机</div>
+          </div>
+          <div class="grid grid-cols-2 gap-1 mt-3">
+            <div class="bg-gray-800 rounded p-2 text-center"><div class="text-sm font-bold text-amber-400">127</div><div class="text-xs text-gray-600">社区</div></div>
+            <div class="bg-gray-800 rounded p-2 text-center"><div class="text-sm font-bold text-green-400">+8</div><div class="text-xs text-gray-600">今日</div></div>
+          </div>
+        </div>
+        <!-- Middle -->
+        <div class="flex-1 bg-gray-900 rounded-xl p-3">
+          <div class="text-xs text-amber-400 font-semibold mb-3">📡 雷达线索流</div>
+          <div class="space-y-2">
+            <div class="bg-gray-800 rounded-lg p-3 border border-amber-500/20">
+              <div class="flex items-center gap-2 mb-1">
+                <div class="w-6 h-6 rounded-full bg-amber-400 text-xs flex items-center justify-center font-bold text-gray-900">M</div>
+                <div class="text-xs text-gray-400">M****e · 美国 🇺🇸</div>
+                <div class="ml-auto text-xs bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded">97分</div>
+              </div>
+              <div class="text-xs text-white font-medium">Looking for riding lawn mower from China</div>
+              <div class="text-xs text-gray-600 blur-sm mt-1">联系方式及完整需求已加密...</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-3">
+              <div class="flex items-center gap-2 mb-1">
+                <div class="w-6 h-6 rounded-full bg-blue-400 text-xs flex items-center justify-center font-bold text-white">H</div>
+                <div class="text-xs text-gray-400">H****s · 德国 🇩🇪</div>
+                <div class="ml-auto text-xs bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded">95分</div>
+              </div>
+              <div class="text-xs text-white font-medium">Rasenmäher Großhandel gesucht</div>
+              <div class="text-xs text-gray-600 blur-sm mt-1">联系方式及完整需求已加密...</div>
+            </div>
+          </div>
+        </div>
+        <!-- Right -->
+        <div class="w-[30%] bg-gray-900 rounded-xl p-3">
+          <div class="text-xs text-amber-400 font-semibold mb-3">🤖 AI话术台</div>
+          <div class="bg-gray-800 rounded-lg p-2 mb-2">
+            <div class="text-xs text-gray-500 mb-1">语调滑块</div>
+            <div class="flex justify-between text-xs text-gray-600 mb-1"><span>商务</span><span>俚语</span></div>
+            <div class="h-1.5 bg-gray-700 rounded-full"><div class="h-full w-2/5 bg-amber-400 rounded-full"></div></div>
+          </div>
+          <div class="bg-gray-800 rounded-lg p-2 text-xs text-gray-400 leading-relaxed">
+            Dear Mike, I noticed your inquiry about riding mowers...
+            <div class="text-gray-700">...generating in real-time</div>
+          </div>
+          <div class="text-xs text-gray-600 mt-1 text-right">📊 单词数: 73/80</div>
+        </div>
+      </div>
+    </div>
+    <div class="text-center mt-6">
+      <a href="pages/dashboard.html" class="btn-gold px-6 py-3 rounded-xl inline-block text-sm">进入完整仪表盘体验 →</a>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" class="py-24 sm:py-32" style="background: #0D1117;">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl sm:text-5xl font-black text-white mb-4">选择您的方案</h2>
+      <p class="text-gray-400">灵活计费，按需付费，无锁定</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <template x-for="plan in pricing" :key="plan.name">
+        <div class="pricing-card p-8" :class="plan.featured ? 'featured' : ''">
+          <div x-show="plan.featured" class="text-xs font-bold gold px-3 py-1 rounded-full mb-3 inline-block" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);">最受欢迎</div>
+          <h3 class="text-xl font-bold text-white mb-1" x-text="plan.name"></h3>
+          <p class="text-sm text-gray-500 mb-4" x-text="plan.desc"></p>
+          <div class="mb-6">
+            <span class="text-4xl font-black" :class="plan.featured ? 'gradient-gold' : 'text-white'" x-text="plan.price"></span>
+            <span class="text-gray-500 text-sm" x-text="plan.period"></span>
+          </div>
+          <ul class="space-y-3 mb-8">
+            <template x-for="item in plan.features" :key="item">
+              <li class="flex items-start gap-2 text-sm text-gray-400">
+                <span class="text-green-400 mt-0.5 flex-shrink-0">✓</span>
+                <span x-text="item"></span>
+              </li>
+            </template>
+          </ul>
+          <button @click="showRegister = true"
+                  class="w-full py-3 rounded-xl font-semibold text-sm transition-all"
+                  :class="plan.featured ? 'btn-gold' : 'btn-outline'">
+            <span x-text="plan.cta"></span>
+          </button>
+        </div>
+      </template>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer style="background: #0B0F19; border-top: 1px solid rgba(255,255,255,0.05);">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg gold-bg flex items-center justify-center">
+          <svg class="w-5 h-5 text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="2" fill="currentColor"/>
+            <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.7"/>
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1" fill="none" opacity="0.4"/>
+          </svg>
+        </div>
+        <span class="text-white font-bold">出海雷达 AI</span>
+      </div>
+      <p class="text-gray-600 text-sm">© 2025 GlobalRadar AI. 为中国出海商家精准匹配海外采购线索。</p>
+      <div class="flex gap-6 text-sm text-gray-600">
+        <a href="#" class="hover:text-gray-400 transition-colors">隐私政策</a>
+        <a href="#" class="hover:text-gray-400 transition-colors">服务条款</a>
+        <a href="pages/admin.html" class="hover:text-gray-400 transition-colors">管理员</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- LOGIN MODAL -->
+<div x-show="showLogin" class="modal-overlay" x-cloak @click.self="showLogin = false">
+  <div class="modal-box">
+    <div class="text-center mb-6">
+      <div class="text-2xl font-black text-white mb-1">欢迎回来</div>
+      <div class="text-sm text-gray-500">登录您的出海雷达账号</div>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="text-sm text-gray-400 mb-1 block">邮箱</label>
+        <input x-model="loginForm.email" type="email" class="input-field" placeholder="your@email.com">
+      </div>
+      <div class="relative">
+        <label class="text-sm text-gray-400 mb-1 block">密码</label>
+        <input x-model="loginForm.password" :type="showPwd ? 'text' : 'password'" class="input-field pr-10" placeholder="••••••••">
+        <button @click="showPwd = !showPwd" class="absolute right-3 top-8 text-gray-500 hover:text-gray-300 text-xs">
+          <span x-text="showPwd ? '隐藏' : '显示'"></span>
+        </button>
+      </div>
+      <button @click="handleLogin()" class="btn-gold w-full py-3 rounded-xl text-sm">登录</button>
+      <button class="w-full py-3 rounded-xl text-sm border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        使用 Google 登录
+      </button>
+    </div>
+    <div class="text-center mt-4 text-sm text-gray-500">
+      没有账号？
+      <button @click="showLogin = false; showRegister = true" class="gold hover:underline">免费注册</button>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER MODAL -->
+<div x-show="showRegister" class="modal-overlay" x-cloak @click.self="showRegister = false">
+  <div class="modal-box">
+    <div class="text-center mb-6">
+      <div class="text-2xl font-black text-white mb-1">免费注册</div>
+      <div class="text-sm text-gray-500">每日5次免费解密，立即开始</div>
+    </div>
+    <div class="space-y-4">
+      <div>
+        <label class="text-sm text-gray-400 mb-1 block">邮箱</label>
+        <input x-model="registerForm.email" type="email" class="input-field" placeholder="your@email.com">
+      </div>
+      <div class="relative">
+        <label class="text-sm text-gray-400 mb-1 block">密码</label>
+        <input x-model="registerForm.password" :type="showPwd2 ? 'text' : 'password'" class="input-field pr-10" placeholder="至少8位">
+        <button @click="showPwd2 = !showPwd2" class="absolute right-3 top-8 text-gray-500 hover:text-gray-300 text-xs">
+          <span x-text="showPwd2 ? '隐藏' : '显示'"></span>
+        </button>
+      </div>
+      <div>
+        <label class="text-sm text-gray-400 mb-1 block">公司/产品（选填）</label>
+        <input x-model="registerForm.company" type="text" class="input-field" placeholder="例：深圳某割草机制造商">
+      </div>
+      <button @click="handleRegister()" class="btn-gold w-full py-3 rounded-xl text-sm">🚀 立即注册（免费）</button>
+      <button class="w-full py-3 rounded-xl text-sm border border-gray-700 text-gray-300 hover:bg-gray-800 transition-colors flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        使用 Google 快速注册
+      </button>
+    </div>
+    <div class="text-center mt-4 text-sm text-gray-500">
+      已有账号？<button @click="showRegister = false; showLogin = true" class="gold hover:underline">登录</button>
+    </div>
+    <p class="text-center text-xs text-gray-600 mt-3">注册即表示您同意服务条款和隐私政策</p>
+  </div>
+</div>
+
+<script>
+function app() {
+  return {
+    showLogin: false,
+    showRegister: false,
+    showPwd: false,
+    showPwd2: false,
+    loginForm: { email: '', password: '' },
+    registerForm: { email: '', password: '', company: '' },
+    stats: { leads: 12847, merchants: 2100 },
+    features: [
+      { icon: '🔍', title: 'AI智能扫描', desc: '24/7实时扫描全球B2B平台、Reddit、Facebook等，发现匹配您产品的买家需求' },
+      { icon: '🎯', title: '精准匹配评分', desc: '多维度AI评估线索质量：买家信誉、采购预算、决策周期，优先推送高分线索' },
+      { icon: '🔐', title: '数据脱敏保护', desc: '买家联系方式加密保护，解密前高斯模糊处理，原子化扣费机制防止滥用' },
+      { icon: '✍️', title: 'AI话术生成', desc: '根据买家背景生成本地化开发信，80词精简约束，4档语调调节，流式打字输出' },
+      { icon: '🧠', title: '买家心理拆解', desc: '深度分析买家真实意图、谈判筹码和跟进陷阱，三色卡片直观呈现' },
+      { icon: '📊', title: '数据分析报告', desc: '解密历史追踪、转化率分析、CSV/PDF导出，持续优化出海策略' },
+    ],
+    steps: [
+      { title: '设置关键词', desc: '输入您的产品关键词（如"割草机"），AI立即启动全球扫描' },
+      { title: 'AI自动匹配', desc: '系统实时抓取并评分，每18秒推送一条高匹配线索' },
+      { title: '解密并联系', desc: '点击解密，获取完整买家信息和AI生成的个性化开发信' },
+    ],
+    pricing: [
+      {
+        name: '免费版',
+        desc: '体验出海雷达',
+        price: '¥0',
+        period: '/月',
+        featured: false,
+        cta: '免费开始',
+        features: ['每日5条免费解密', '基础线索列表', 'AI话术生成（基础）', '邮件通知']
+      },
+      {
+        name: '专业版',
+        desc: '活跃出海商家首选',
+        price: '¥299',
+        period: '/月',
+        featured: true,
+        cta: '立即订阅',
+        features: ['无限线索查看', '¥0.5/次解密（超出后）', 'AI话术生成（高级）', '买家心理分析', '版本历史管理', '微信实时通知', 'CSV/PDF报表导出']
+      },
+      {
+        name: '企业版',
+        desc: '大型出海团队',
+        price: '¥999',
+        period: '/月',
+        featured: false,
+        cta: '联系销售',
+        features: ['专业版全部功能', '多账号团队协作', 'API接口（Coming）', '专属客户经理', '定制化市场报告', '优先技术支持']
+      }
+    ],
+    init() {
+      // 数字动画
+      this.animateNumber('leads', 0, 12847, 2000);
+      this.animateNumber('merchants', 0, 2100, 2000);
+    },
+    animateNumber(key, from, to, duration) {
+      const start = Date.now();
+      const update = () => {
+        const elapsed = Date.now() - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        this.stats[key] = Math.round(from + (to - from) * eased);
+        if (progress < 1) requestAnimationFrame(update);
+      };
+      requestAnimationFrame(update);
+    },
+    handleLogin() {
+      // Demo: redirect to dashboard
+      alert('演示模式：点击确认进入仪表盘');
+      window.location.href = 'pages/dashboard.html';
+    },
+    handleRegister() {
+      if (!this.registerForm.email || !this.registerForm.password) {
+        alert('请填写邮箱和密码');
+        return;
+      }
+      // Demo: redirect to dashboard
+      window.location.href = 'pages/dashboard.html';
+    }
+  }
+}
+</script>
+</body>
+</html>
