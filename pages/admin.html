@@ -4,9 +4,22 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>出海雷达 AI - 管理控制台</title>
+  <meta name="description" content="出海雷达 AI 管理控制台 - 用户、营收、风控管理">
+  <meta name="robots" content="noindex, nofollow">
+  <!-- Open Graph -->
+  <meta property="og:title" content="出海雷达 AI - 管理控制台">
+  <meta property="og:description" content="系统管理后台，仅管理员可访问。">
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23F59E0B'/%3E%3Cpath d='M16 6l8 4v6a8 8 0 01-8 8 8 8 0 01-8-8V10l8-4z' fill='%230B0F19' opacity='0.8'/%3E%3Cpath d='M13 14l2 2 4-4' fill='none' stroke='%23F59E0B' stroke-width='2'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+  <link rel="preconnect" href="https://cdn.tailwindcss.com">
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
@@ -929,30 +942,69 @@ function adminPanel() {
     topUsers: [],
 
     init() {
-      // Check stored auth
-      const stored = localStorage.getItem('admin_authed');
-      if (stored === 'true') this.authed = true;
+      // Verify session with timestamp + signature to prevent trivial bypass
+      this.verifySession();
+      if (this.authed) {
+        this.generateRevenueChart();
+        this.generateUsers();
+        this.generateTransactions();
+        this.generateAlerts();
+        this.generateAuditLogs();
+        this.generateClues();
+        this.generateActivity();
+        this.generateTopUsers();
+        this.startClock();
+        // Simulate new alerts
+        setInterval(() => {
+          if (Math.random() > 0.7) this.addRandomAlert();
+        }, 15000);
+      }
+    },
 
-      this.generateRevenueChart();
-      this.generateUsers();
-      this.generateTransactions();
-      this.generateAlerts();
-      this.generateAuditLogs();
-      this.generateClues();
-      this.generateActivity();
-      this.generateTopUsers();
-      this.startClock();
+    // Generate a simple session signature
+    signSession(email, timestamp) {
+      const payload = email + ':' + timestamp;
+      let hash = 0;
+      for (let i = 0; i < payload.length; i++) {
+        const char = payload.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash |= 0;
+      }
+      return 'v2:' + timestamp + ':' + Math.abs(hash).toString(36);
+    },
 
-      // Simulate new alerts
-      setInterval(() => {
-        if (Math.random() > 0.7) this.addRandomAlert();
-      }, 15000);
+    // Verify stored session token
+    verifySession() {
+      const token = localStorage.getItem('admin_session');
+      if (!token || !token.startsWith('v2:')) {
+        this.authed = false;
+        return;
+      }
+      const parts = token.split(':');
+      if (parts.length !== 3) { this.authed = false; return; }
+      const timestamp = parseInt(parts[1]);
+      const now = Date.now();
+      // Session expires after 24 hours
+      if (now - timestamp > 86400000) {
+        localStorage.removeItem('admin_session');
+        this.authed = false;
+        return;
+      }
+      const expectedSig = this.signSession('oraora2026@163.com', timestamp);
+      if (token === expectedSig) {
+        this.authed = true;
+      } else {
+        localStorage.removeItem('admin_session');
+        this.authed = false;
+      }
     },
 
     tryLogin() {
-      if (this.loginEmail === 'oraora2026@163.com' && this.loginPass.length >= 4) {
+      if (this.loginEmail === 'oraora2026@163.com' && this.loginPass === 'admin2026') {
+        const token = this.signSession(this.loginEmail, Date.now());
+        localStorage.setItem('admin_session', token);
         this.authed = true;
-        localStorage.setItem('admin_authed', 'true');
+        this.init();
         this.showToast('登录成功', 'success');
       } else {
         this.loginError = '邮箱或密码错误，仅管理员可访问';

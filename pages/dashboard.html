@@ -4,9 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>出海雷达 AI - 仪表盘</title>
+  <meta name="description" content="出海雷达 AI 仪表盘 - 实时线索流、AI话术生成、买家心理分析">
+  <!-- Open Graph -->
+  <meta property="og:title" content="出海雷达 AI - 仪表盘">
+  <meta property="og:description" content="实时监控全球采购线索，AI智能匹配海外买家。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://uanyz-create.github.io/-/pages/dashboard.html">
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23F59E0B'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%230B0F19'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%230B0F19' stroke-width='2' opacity='0.6'/%3E%3Ccircle cx='16' cy='16' r='11' fill='none' stroke='%230B0F19' stroke-width='1.5' opacity='0.3'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+  <link rel="preconnect" href="https://cdn.tailwindcss.com">
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
@@ -49,6 +63,7 @@
       border-radius: 14px;
       transition: all .25s;
       cursor: pointer;
+      will-change: transform, border-color;
     }
     .clue-card:hover { border-color: rgba(245,158,11,.25); transform: translateY(-1px); box-shadow: 0 8px 32px rgba(0,0,0,.4); }
     .clue-card.active { border-color: rgba(245,158,11,.5); background: rgba(245,158,11,.04); }
@@ -60,6 +75,12 @@
       0% { box-shadow: 0 0 0 0 rgba(245,158,11,.6); }
       50% { box-shadow: 0 0 0 12px rgba(245,158,11,.0); }
       100% { box-shadow: 0 0 0 0 rgba(245,158,11,.0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .new-pulse { animation: none !important; }
+      .clue-card { transition: none !important; }
+      .chart-bar { transition: none !important; }
+      .btn-gold { transition: none !important; }
     }
     @keyframes slideDown {
       from { opacity: 0; transform: translateY(-20px); }
@@ -619,8 +640,115 @@
 
 <!-- Mobile panels -->
 <div class="hidden sm:hidden" id="mobile-content">
-  <div :class="activeMobileTab === 'hub' ? 'mobile-panel active' : 'mobile-panel'" class="p-4 pb-24">
-    <!-- Hub content same as left sidebar -->
+  <!-- Hub panel -->
+  <div x-show="activeMobileTab === 'hub'" class="mobile-panel p-4 pb-24" style="margin-top:56px;">
+    <div class="card p-4 mb-4">
+      <div class="text-xs font-semibold text-amber-400 mb-3">🎯 关键词雷达配置</div>
+      <div class="flex gap-2 mb-3">
+        <input x-model="newKeyword" @keydown.enter="addKeyword()" type="text" class="input-field" placeholder="输入关键词">
+        <button @click="addKeyword()" class="btn-gold btn-sm">添加</button>
+      </div>
+      <div class="flex flex-wrap gap-1.5 mb-3" x-show="keywords.length > 0">
+        <template x-for="(kw, i) in keywords" :key="i">
+          <div class="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);color:#F59E0B;">
+            <span x-text="kw"></span>
+            <button @click="removeKeyword(i)" class="text-amber-500 hover:text-red-400">×</button>
+          </div>
+        </template>
+      </div>
+      <button @click="launchRadar()" class="btn-gold w-full py-2.5 rounded-xl text-sm">启动全球雷达</button>
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="card-inner p-3 text-center"><div class="text-lg font-black text-amber-400" x-text="kpi.communities"></div><div class="text-xs text-gray-600 mt-0.5">在线社区</div></div>
+      <div class="card-inner p-3 text-center"><div class="text-lg font-black text-green-400" x-text="'+' + kpi.todayNew"></div><div class="text-xs text-gray-600 mt-0.5">今日新增</div></div>
+      <div class="card-inner p-3 text-center"><div class="text-lg font-black text-white" x-text="kpi.monthDecrypt"></div><div class="text-xs text-gray-600 mt-0.5">本月解密</div></div>
+      <div class="card-inner p-3 text-center"><div class="text-lg font-black text-red-400" x-text="'¥' + kpi.monthCost.toFixed(1)"></div><div class="text-xs text-gray-600 mt-0.5">本月消耗</div></div>
+    </div>
+  </div>
+
+  <!-- Feed panel -->
+  <div x-show="activeMobileTab === 'feed'" class="mobile-panel" style="margin-top:56px; padding-bottom: 80px;">
+    <div class="sticky top-0 z-10 px-4 py-3" style="background:#0B0F19;border-bottom:1px solid #1F2937;">
+      <div class="flex items-center justify-between">
+        <span class="text-sm font-semibold text-white">雷达线索流</span>
+        <div class="flex items-center gap-1 text-xs text-gray-500">
+          <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span> 实时
+          <span class="ml-2 text-gray-500" x-text="filteredClues.length + ' 条'"></span>
+        </div>
+      </div>
+      <div class="relative mt-2">
+        <input x-model="searchQuery" type="text" class="input-field pl-9 text-xs" placeholder="搜索买家、国家...">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+      </div>
+    </div>
+    <div class="p-3 space-y-3">
+      <template x-for="(clue, idx) in filteredClues.slice(0, 10)" :key="clue.id">
+        <div class="clue-card p-3">
+          <div class="flex items-center gap-2 mb-1">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold" style="background:rgba(245,158,11,.15);color:#F59E0B;">
+              <span x-text="clue.author_masked?.charAt(0) || '?'"></span>
+            </div>
+            <div class="text-xs text-gray-400" x-text="clue.author_masked + ' · ' + clue.country_flag"></div>
+            <span class="ml-auto score-badge score-high text-[10px]" x-text="clue.match_score + '分'"></span>
+          </div>
+          <div class="text-xs text-white font-medium line-clamp-2 mb-1" x-text="clue.title"></div>
+          <div class="flex justify-between items-center mt-2">
+            <span class="text-[10px] text-gray-600" x-text="formatTime(clue.created_at)"></span>
+            <button x-show="!clue.decrypted" @click="decryptClue(clue)" class="btn-gold text-xs px-3 py-1 rounded-lg">解密</button>
+            <span x-show="clue.decrypted" class="text-[10px] text-green-400">✓ 已解密</span>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- AI panel (simplified) -->
+  <div x-show="activeMobileTab === 'ai'" class="mobile-panel p-4 pb-24" style="margin-top:56px;">
+    <div x-show="!selectedClue" class="text-center py-12 text-gray-600">
+      <div class="text-3xl mb-3">🤖</div>
+      <div class="text-sm">请先在线索流中选择一条线索</div>
+    </div>
+    <div x-show="selectedClue">
+      <div class="card-inner p-3 mb-3">
+        <div class="text-xs font-semibold text-white" x-text="selectedClue?.title"></div>
+        <div class="text-[10px] text-gray-500 mt-1" x-text="selectedClue?.community + ' · ' + selectedClue?.country"></div>
+      </div>
+      <button @click="generateScript(selectedClue)" :disabled="isGenerating" class="btn-gold w-full py-2.5 rounded-xl text-sm mb-3">
+        <span x-text="isGenerating ? 'AI生成中...' : '⚡ 生成本地化话术'"></span>
+      </button>
+      <div x-show="scriptText" class="card-inner p-3">
+        <div class="text-xs text-gray-300 leading-relaxed" x-text="scriptText"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mine panel -->
+  <div x-show="activeMobileTab === 'mine'" class="mobile-panel p-4 pb-24" style="margin-top:56px;">
+    <div class="card p-4 mb-3">
+      <div class="text-center mb-4">
+        <div class="w-16 h-16 mx-auto mb-3 rounded-full gold-bg flex items-center justify-center text-2xl font-black text-gray-900">U</div>
+        <div class="text-sm font-bold text-white">出海雷达用户</div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="card-inner p-3 text-center">
+          <div class="text-lg font-black text-amber-400" x-text="'¥' + credits.balance.toFixed(2)"></div>
+          <div class="text-xs text-gray-600">钱包余额</div>
+        </div>
+        <div class="card-inner p-3 text-center">
+          <div class="text-lg font-black text-green-400" x-text="5 - credits.dailyFree + '/5'"></div>
+          <div class="text-xs text-gray-600">免费额度</div>
+        </div>
+        <div class="card-inner p-3 text-center">
+          <div class="text-lg font-black text-white" x-text="kpi.totalDecrypt"></div>
+          <div class="text-xs text-gray-600">累计解密</div>
+        </div>
+        <div class="card-inner p-3 text-center">
+          <div class="text-lg font-black text-red-400" x-text="'¥' + kpi.monthCost.toFixed(1)"></div>
+          <div class="text-xs text-gray-600">本月消耗</div>
+        </div>
+      </div>
+    </div>
+    <button @click="showRecharge = true" class="btn-gold w-full py-2.5 rounded-xl text-sm">💳 充值</button>
   </div>
 </div>
 
@@ -829,6 +957,7 @@ function dashboard() {
         result = result.filter(c =>
           c.title.toLowerCase().includes(q) ||
           c.author.toLowerCase().includes(q) ||
+          (c.author_masked || '').toLowerCase().includes(q) ||
           c.country.toLowerCase().includes(q) ||
           (c.keyword_tags || []).some(t => t.toLowerCase().includes(q)) ||
           c.community.toLowerCase().includes(q)
@@ -844,8 +973,10 @@ function dashboard() {
     },
 
     init() {
-      // Simulate real-time new clues every 18s
+      // Simulate real-time new clues every 18s (capped at 50 pending)
       setInterval(() => {
+        if (this.pendingQueue.length >= 50) return;
+        const ci = Math.floor(Math.random()*6);
         const newClue = {
           id: 'new_' + Date.now(),
           community: ['Reddit', 'Facebook', 'LinkedIn'][Math.floor(Math.random()*3)],
@@ -854,7 +985,7 @@ function dashboard() {
           avatar_url: 'https://i.pravatar.cc/150?img=' + Math.floor(Math.random()*70),
           title: 'New procurement inquiry - ' + ['solar panels', 'LED lights', 'machinery', 'electronics'][Math.floor(Math.random()*4)],
           excerpt: 'Looking for reliable Chinese supplier with certifications. MOQ negotiable. Competitive pricing required.',
-          country: ['United States','Germany','Canada','Australia','UK','UAE'][Math.floor(Math.random()*6)],
+          country: ['United States','Germany','Canada','Australia','United Kingdom','UAE'][Math.floor(Math.random()*6)],
           country_flag: ['🇺🇸','🇩🇪','🇨🇦','🇦🇺','🇬🇧','🇦🇪'][Math.floor(Math.random()*6)],
           keyword_tags: this.keywords.slice(0,2),
           budget_range: '$' + (Math.floor(Math.random()*100)+20) + ',000+',
